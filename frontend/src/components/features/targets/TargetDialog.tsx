@@ -99,10 +99,10 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-[500px]">
+            <DialogContent className="bg-card border-border text-foreground sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>{target ? 'Edit Target' : 'Add Target'}</DialogTitle>
-                    <DialogDescription className="text-slate-400">
+                    <DialogDescription className="text-muted-foreground">
                         {target ? 'Update the target configuration' : 'Configure a new storage target'}
                     </DialogDescription>
                 </DialogHeader>
@@ -114,7 +114,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                             id="name"
                             {...register('name', { required: 'Name is required' })}
                             placeholder="My Backup Storage"
-                            className="bg-slate-800 border-slate-700"
+                            className="bg-input border-input"
                         />
                         {errors.name && (
                             <p className="text-sm text-red-400">{errors.name.message}</p>
@@ -124,10 +124,10 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                     <div className="space-y-2">
                         <Label htmlFor="type">Type</Label>
                         <Select value={targetType} onValueChange={handleTypeChange}>
-                            <SelectTrigger className="bg-slate-800 border-slate-700">
+                            <SelectTrigger className="bg-input border-input">
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700">
+                            <SelectContent className="bg-popover border-border">
                                 <SelectItem value="local">Local Filesystem</SelectItem>
                                 <SelectItem value="s3">S3 Compatible</SelectItem>
                                 <SelectItem value="sftp">SFTP</SelectItem>
@@ -142,7 +142,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                 id="path"
                                 {...register('config.path', { required: 'Path is required' })}
                                 placeholder="/backups"
-                                className="bg-slate-800 border-slate-700"
+                                className="bg-input border-input"
                             />
                         </div>
                     )}
@@ -155,7 +155,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                     id="bucket"
                                     {...register('config.bucket', { required: 'Bucket is required' })}
                                     placeholder="my-backups"
-                                    className="bg-slate-800 border-slate-700"
+                                    className="bg-input border-input"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -164,7 +164,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                     id="region"
                                     {...register('config.region')}
                                     placeholder="us-east-1"
-                                    className="bg-slate-800 border-slate-700"
+                                    className="bg-input border-input"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -173,7 +173,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                     id="access_key"
                                     {...register('config.access_key')}
                                     placeholder="YOUR_ACCESS_KEY"
-                                    className="bg-slate-800 border-slate-700"
+                                    className="bg-input border-input"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -183,7 +183,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                     type="password"
                                     {...register('config.secret_key')}
                                     placeholder="YOUR_SECRET_KEY"
-                                    className="bg-slate-800 border-slate-700"
+                                    className="bg-input border-input"
                                 />
                             </div>
                         </>
@@ -197,7 +197,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                     id="host"
                                     {...register('config.host', { required: 'Host is required' })}
                                     placeholder="backup.example.com"
-                                    className="bg-slate-800 border-slate-700"
+                                    className="bg-input border-input"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -206,7 +206,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                     id="user"
                                     {...register('config.user', { required: 'User is required' })}
                                     placeholder="backup-user"
-                                    className="bg-slate-800 border-slate-700"
+                                    className="bg-input border-input"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -216,7 +216,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                     type="password"
                                     {...register('config.password')}
                                     placeholder="password"
-                                    className="bg-slate-800 border-slate-700"
+                                    className="bg-input border-input"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -225,7 +225,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                     id="sftp_path"
                                     {...register('config.path', { required: 'Path is required' })}
                                     placeholder="/backups"
-                                    className="bg-slate-800 border-slate-700"
+                                    className="bg-input border-input"
                                 />
                             </div>
                         </>

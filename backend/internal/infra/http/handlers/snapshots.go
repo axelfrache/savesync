@@ -177,7 +177,7 @@ func (h *SnapshotHandler) GetManifest(w http.ResponseWriter, r *http.Request) {
 // @Tags snapshots
 // @Produce json
 // @Param id path int true "Snapshot ID"
-// @Success 200 {object} FileNode
+// @Success 200 {object} backupservice.FileNode
 // @Failure 400 {object} handlers.ErrorInfo
 // @Failure 500 {object} handlers.ErrorInfo
 // @Router /snapshots/{id}/files [get]
