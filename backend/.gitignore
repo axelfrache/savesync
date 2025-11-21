@@ -1,5 +1,5 @@
 # Binaires
-savesyncd
+/savesyncd
 *.exe
 *.dll
 *.so
