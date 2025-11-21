@@ -17,6 +17,13 @@ jobs:
       with:
         go-version: '1.24'
 
+    - name: Install Swag CLI
+      run: |
+        go install github.com/swaggo/swag/cmd/swag@latest
+    - name: Generate Swagger Docs
+      run: |
+        cd backend
+        swag init -g internal/infra/http/router.go -o docs
     - name: Test Backend
       run: |
         cd backend
