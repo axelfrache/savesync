@@ -1,16 +1,20 @@
 import { useParams, Link } from 'react-router-dom';
 import { useSnapshot } from '@/hooks/useSnapshots';
+import { useSnapshotFiles } from '@/hooks/useSnapshotFiles';
 import LoadingState from '@/components/shared/LoadingState';
 import ErrorState from '@/components/shared/ErrorState';
 import StatusBadge from '@/components/shared/StatusBadge';
+import SnapshotFileTree from '@/components/features/snapshots/SnapshotFileTree';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ArrowLeft, Download, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function SnapshotDetail() {
     const { id } = useParams<{ id: string }>();
     const { data: snapshot, isLoading, error } = useSnapshot(Number(id));
+    const { data: fileTree, isLoading: filesLoading, error: filesError } = useSnapshotFiles(Number(id));
 
     if (isLoading) return <LoadingState />;
     if (error || !snapshot) return <ErrorState message="Snapshot not found" />;
@@ -94,9 +98,21 @@ export default function SnapshotDetail() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                        File explorer coming soon. Use the manifest to see all files in this snapshot.
-                    </p>
+                    {filesLoading && (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    )}
+                    {filesError && (
+                        <p className="text-sm text-destructive">
+                            Failed to load file tree. Please try again.
+                        </p>
+                    )}
+                    {fileTree && (
+                        <ScrollArea className="h-[600px] w-full rounded-md border border-border p-4">
+                            <SnapshotFileTree root={fileTree} />
+                        </ScrollArea>
+                    )}
                 </CardContent>
             </Card>
         </div>

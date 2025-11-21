@@ -304,3 +304,124 @@ func (s *Service) GetManifestWithBackend(ctx context.Context, id int64, backend 
 
 	return manifestJSON, nil
 }
+
+// FileNode represents a node in the file tree
+type FileNode struct {
+	Name     string      `json:"name"`
+	Path     string      `json:"path"`
+	IsDir    bool        `json:"is_dir"`
+	Size     int64       `json:"size,omitempty"`
+	ModTime  string      `json:"mod_time,omitempty"`
+	Children []*FileNode `json:"children,omitempty"`
+}
+
+// GetSnapshotFileTree builds a hierarchical file tree from the manifest
+func (s *Service) GetSnapshotFileTree(ctx context.Context, id int64, backend domain.Backend) (*FileNode, error) {
+	// Get manifest
+	manifestJSON, err := s.GetManifestWithBackend(ctx, id, backend)
+	if err != nil {
+		return nil, err
+	}
+
+	var manifest domain.Manifest
+	if err := json.Unmarshal(manifestJSON, &manifest); err != nil {
+		return nil, fmt.Errorf("failed to parse manifest: %w", err)
+	}
+
+	// Create root node
+	root := &FileNode{
+		Name:     filepath.Base(manifest.SourcePath),
+		Path:     manifest.SourcePath,
+		IsDir:    true,
+		Children: make([]*FileNode, 0),
+	}
+
+	// Build tree from flat file list
+	for _, file := range manifest.Files {
+		s.insertFileIntoTree(root, file, manifest.SourcePath)
+	}
+
+	return root, nil
+}
+
+// insertFileIntoTree inserts a file into the tree structure
+func (s *Service) insertFileIntoTree(root *FileNode, file domain.ManifestFile, sourcePath string) {
+	// Get relative path
+	relPath, err := filepath.Rel(sourcePath, file.Path)
+	if err != nil {
+		// If we can't get relative path, use the full path
+		relPath = file.Path
+	}
+
+	// Split path into components
+	parts := filepath.SplitList(relPath)
+	if len(parts) == 0 {
+		parts = []string{relPath}
+	}
+
+	// For paths with separators, split manually
+	if len(parts) == 1 && filepath.Separator != ' ' {
+		parts = splitPath(relPath)
+	}
+
+	current := root
+
+	// Navigate/create directories
+	for i := 0; i < len(parts)-1; i++ {
+		part := parts[i]
+		if part == "." || part == "" {
+			continue
+		}
+
+		// Find or create directory
+		found := false
+		for _, child := range current.Children {
+			if child.Name == part && child.IsDir {
+				current = child
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			// Create new directory node
+			newDir := &FileNode{
+				Name:     part,
+				Path:     filepath.Join(current.Path, part),
+				IsDir:    true,
+				Children: make([]*FileNode, 0),
+			}
+			current.Children = append(current.Children, newDir)
+			current = newDir
+		}
+	}
+
+	// Add the file
+	fileName := parts[len(parts)-1]
+	if fileName != "." && fileName != "" {
+		fileNode := &FileNode{
+			Name:    fileName,
+			Path:    file.Path,
+			IsDir:   false,
+			Size:    file.Size,
+			ModTime: file.ModTime.Format(time.RFC3339),
+		}
+		current.Children = append(current.Children, fileNode)
+	}
+}
+
+// splitPath splits a file path into its components
+func splitPath(path string) []string {
+	var parts []string
+	for {
+		dir, file := filepath.Split(path)
+		if file != "" {
+			parts = append([]string{file}, parts...)
+		}
+		if dir == "" || dir == string(filepath.Separator) {
+			break
+		}
+		path = filepath.Clean(dir)
+	}
+	return parts
+}

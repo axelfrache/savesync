@@ -170,3 +170,64 @@ func (h *SnapshotHandler) GetManifest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"manifest-%d.json\"", id))
 	w.Write(manifestJSON)
 }
+
+// GetFiles godoc
+// @Summary Get file tree
+// @Description Récupère l'arborescence des fichiers d'un snapshot
+// @Tags snapshots
+// @Produce json
+// @Param id path int true "Snapshot ID"
+// @Success 200 {object} FileNode
+// @Failure 400 {object} handlers.ErrorInfo
+// @Failure 500 {object} handlers.ErrorInfo
+// @Router /snapshots/{id}/files [get]
+func (h *SnapshotHandler) GetFiles(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "Invalid snapshot ID")
+		return
+	}
+
+	ctx := r.Context()
+
+	// 1. Get Snapshot
+	snapshot, err := h.service.GetSnapshot(ctx, id)
+	if err != nil {
+		h.logger.Error("failed to get snapshot", zap.Error(err))
+		WriteError(w, http.StatusNotFound, "Snapshot not found")
+		return
+	}
+
+	// 2. Get Source
+	source, err := h.sourceService.GetByID(ctx, snapshot.SourceID)
+	if err != nil {
+		h.logger.Error("failed to get source", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "Failed to get source")
+		return
+	}
+
+	if source.TargetID == nil {
+		WriteError(w, http.StatusBadRequest, "Source has no target")
+		return
+	}
+
+	// 3. Get Backend
+	backend, err := h.targetService.GetBackend(ctx, *source.TargetID)
+	if err != nil {
+		h.logger.Error("failed to get backend", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "Failed to initialize backend")
+		return
+	}
+	defer backend.Close()
+
+	// 4. Get and Parse Manifest
+	tree, err := h.service.GetSnapshotFileTree(ctx, id, backend)
+	if err != nil {
+		h.logger.Error("failed to get file tree", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "Failed to retrieve file tree")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, tree)
+}

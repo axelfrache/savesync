@@ -94,6 +94,7 @@ func NewRouter(
 			r.Get("/", snapshotHandler.List)
 			r.Get("/{id}", snapshotHandler.Get)
 			r.Get("/{id}/manifest", snapshotHandler.GetManifest)
+			r.Get("/{id}/files", snapshotHandler.GetFiles)
 			r.Post("/{id}/restore", snapshotHandler.Restore)
 		})
 
