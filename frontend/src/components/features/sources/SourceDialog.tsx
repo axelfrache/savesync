@@ -104,7 +104,7 @@ export default function SourceDialog({ open, onOpenChange, source }: SourceDialo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-[500px]">
+            <DialogContent className="bg-card border-border text-foreground sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>{source ? 'Edit Source' : 'Add Source'}</DialogTitle>
                     <DialogDescription className="text-slate-400">
@@ -132,7 +132,6 @@ export default function SourceDialog({ open, onOpenChange, source }: SourceDialo
                             value={watch('path')}
                             onChange={(value) => setValue('path', value, { shouldValidate: true })}
                             placeholder="/home/user/documents"
-                            className="bg-slate-800 border-slate-700"
                         />
                         {errors.path && (
                             <p className="text-sm text-red-400">{errors.path.message}</p>

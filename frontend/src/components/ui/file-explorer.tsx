@@ -63,7 +63,7 @@ export function FileExplorer({ open, onOpenChange, onSelect, initialPath = '/' }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-background border-border text-foreground sm:max-w-[600px] h-[500px] flex flex-col">
+            <DialogContent className="bg-card border-border text-foreground sm:max-w-[600px] h-[500px] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Select Directory</DialogTitle>
                 </DialogHeader>
@@ -82,7 +82,7 @@ export function FileExplorer({ open, onOpenChange, onSelect, initialPath = '/' }
 
                 {error && <div className="text-destructive text-sm mb-2">{error}</div>}
 
-                <ScrollArea className="flex-1 border border-border rounded-md p-2 bg-muted/50">
+                <ScrollArea className="flex-1 overflow-y-auto border border-border rounded-md p-2 bg-muted/50 h-[350px]">
                     <div className="space-y-1">
                         {entries.map((entry) => (
                             <div

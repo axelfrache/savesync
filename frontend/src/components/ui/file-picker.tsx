@@ -21,6 +21,7 @@ export function FilePicker({ value, onChange, placeholder, className }: FilePick
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
+                className="bg-input border-input text-foreground"
             />
             <Button
                 type="button"
