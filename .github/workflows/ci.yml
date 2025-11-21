@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Test Backend
+      run: |
+        cd backend
+        go test -v ./...
+
+    - name: Build Backend Docker
+      run: |
+        docker build -t savesync-backend ./backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Dependencies
+      run: |
+        cd frontend
+        npm install -g pnpm
+        pnpm install
+
+    - name: Build Frontend
+      run: |
+        cd frontend
+        pnpm build
+
+    - name: Build Frontend Docker
+      run: |
+        docker build -t savesync-frontend ./frontend
