@@ -1,199 +1,289 @@
+<div align="center">
+
 # SaveSync
 
-A modern, deduplicating backup solution with content-defined chunking (CDC) and support for multiple storage backends.
+### Modern Deduplicating Backup Solution
+
+A production-ready backup system with content-defined chunking (CDC), multiple storage backends, and a beautiful web interface.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
+
+[Features](#features) • [Quick Start](#quick-start) • [Documentation](#api-documentation) • [Contributing](#contributing)
+
+</div>
+
+---
+
+## Overview
+
+SaveSync combines enterprise-grade backup capabilities with an intuitive web interface. Built for reliability and efficiency, it uses content-defined chunking for optimal storage deduplication across local, cloud, and remote storage backends.
 
 ## Features
 
-- **Content-Defined Chunking (CDC)**: Efficient deduplication using rolling hash algorithm
-- **Multiple Storage Backends**: Local filesystem, S3-compatible storage, and SFTP
-- **Web Interface**: Modern React-based UI for managing backups, snapshots, and targets
-- **RESTful API**: Complete HTTP API with Swagger documentation
-- **Scheduled Backups**: Configurable backup schedules (manual, hourly, daily, weekly, cron)
-- **Snapshot Management**: Browse file trees, restore snapshots, and download manifests
-- **Job Tracking**: Real-time backup job status and history
+<table>
+<tr>
+<td width="50%">
+
+### Core Capabilities
+- **Content-Defined Chunking (CDC)** - Efficient deduplication using rolling hash
+- **Multi-Backend Support** - Local, S3, and SFTP storage
+- **Snapshot Management** - Browse, restore, and download snapshots
+- **Flexible Scheduling** - Manual, hourly, daily, weekly, or cron-based
+
+</td>
+<td width="50%">
+
+### User Experience
+- **Modern Web UI** - Clean, responsive React interface
+- **Dark/Light Modes** - Seamless theme switching
+- **Real-time Updates** - Live job status and progress
+- **File Explorer** - Browse backed-up files in tree view
+
+</td>
+</tr>
+</table>
 
 ## Architecture
 
-### Backend (Go)
-- **HTTP Server**: Chi router with middleware support
-- **Database**: SQLite for metadata storage
-- **Storage Abstraction**: Pluggable backend interface
-- **Logging**: Structured logging with Zap
-- **Metrics**: Prometheus metrics for observability
+```mermaid
+graph LR
+    A[React UI] -->|REST API| B[Go Backend]
+    B -->|Metadata| C[(SQLite)]
+    B -->|Chunks & Manifests| D[Storage Backend]
+    D -->|Local| E[Filesystem]
+    D -->|Cloud| F[S3-Compatible]
+    D -->|Remote| G[SFTP]
+```
 
-### Frontend (React + TypeScript)
-- **Framework**: Vite + React 18 + TypeScript
-- **UI Components**: shadcn/ui with Tailwind CSS
-- **State Management**: React Query (server state) + Zustand (client state)
+<details>
+<summary><b>Technology Stack</b></summary>
+
+### Backend
+- **Language**: Go 1.24+
+- **Router**: Chi (lightweight, idiomatic)
+- **Database**: SQLite with modernc.org driver
+- **Logging**: Zap (structured, high-performance)
+- **Metrics**: Prometheus integration
+- **API Docs**: Swagger/OpenAPI
+
+### Frontend
+- **Framework**: React 18 + TypeScript
+- **Build Tool**: Vite (fast, modern)
+- **UI Library**: shadcn/ui + Tailwind CSS
+- **State**: React Query + Zustand
 - **Routing**: React Router v6
-- **Styling**: Dark/light mode support with semantic theming
+- **Icons**: Lucide React
+
+</details>
+
+---
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
+### Docker Compose (Recommended)
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/savesync.git
+# Clone and start
+git clone https://github.com/axelfrache/savesync.git
 cd savesync
-
-# Start services
 docker compose up -d
-
-# Access the application
-# Frontend: http://localhost:5173
-# Backend API: http://localhost:8080/api
-# Swagger Docs: http://localhost:8080/swagger/index.html
 ```
+
+**Access Points:**
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8080/api
+- **Swagger Docs**: http://localhost:8080/swagger/index.html
 
 ### Manual Setup
 
-#### Backend
+<details>
+<summary><b>Backend</b></summary>
 
 ```bash
 cd backend
-
-# Install dependencies
 go mod download
-
-# Generate Swagger documentation
 swag init -g cmd/savesyncd/main.go
-
-# Run the server
 go run cmd/savesyncd/main.go
 ```
 
-#### Frontend
+</details>
+
+<details>
+<summary><b>Frontend</b></summary>
 
 ```bash
 cd frontend
-
-# Install dependencies
 pnpm install
-
-# Start development server
 pnpm dev
 ```
+
+</details>
+
+---
+
+## Storage Backends
+
+| Backend | Use Case | Configuration |
+|---------|----------|---------------|
+| **Local** | On-premise backups | `path` - Filesystem directory |
+| **S3** | Cloud storage (AWS, MinIO, Backblaze) | `bucket`, `region`, `access_key`, `secret_key`, `endpoint` |
+| **SFTP** | Remote server backups | `host`, `port`, `user`, `password` or `key_path`, `path` |
+
+---
+
+## API Documentation
+
+Interactive Swagger UI available at `/swagger/index.html` when running the backend.
+
+**Regenerate docs:**
+```bash
+cd backend
+swag init -g cmd/savesyncd/main.go
+```
+
+---
 
 ## Configuration
 
 ### Environment Variables
 
-Backend configuration:
-- `PORT`: HTTP server port (default: 8080)
-- `DB_PATH`: SQLite database path (default: `./data/savesync.db`)
-- `DATA_DIR`: Data directory for local storage (default: `./data`)
-
-Frontend configuration:
-- `VITE_API_URL`: Backend API URL (default: `http://localhost:8080/api`)
-
-## API Documentation
-
-Interactive API documentation is available via Swagger UI when running the backend:
-```
-http://localhost:8080/swagger/index.html
-```
-
-To regenerate Swagger documentation:
+**Backend:**
 ```bash
-cd backend
-swag init -g cmd/savesyncd/main.go
+PORT=8080                          # HTTP server port
+DB_PATH=./data/savesync.db         # SQLite database path
+DATA_DIR=./data                    # Local storage directory
+LOG_LEVEL=info                     # debug, info, warn, error
 ```
+
+**Frontend:**
+```bash
+VITE_API_URL=http://localhost:8080/api
+```
+
+---
 
 ## Testing
 
 ### Backend Tests
-
 ```bash
 cd backend
 
-# Run all tests
-go test -v ./...
-
-# Run with coverage
+# All tests with coverage
 go test -v -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
+
+# Specific package
+go test -v ./internal/app/backupservice/...
 ```
 
-### CI/CD
+### CI/CD Pipeline
 
-The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that:
-- Runs backend tests
-- Generates Swagger documentation
-- Builds Docker images for both backend and frontend
+GitHub Actions workflow automates:
+- Backend unit tests
+- Swagger documentation generation
+- Docker image builds (backend + frontend)
+
+---
 
 ## Project Structure
 
 ```
 savesync/
 ├── backend/
-│   ├── cmd/savesyncd/        # Application entry point
+│   ├── cmd/savesyncd/              # Main application entry
 │   ├── internal/
-│   │   ├── app/              # Business logic layer
-│   │   ├── domain/           # Domain models and interfaces
-│   │   └── infra/            # Infrastructure (HTTP, DB, storage)
-│   └── docs/                 # Generated Swagger docs
+│   │   ├── app/                    # Business logic (services)
+│   │   ├── domain/                 # Models, interfaces, errors
+│   │   └── infra/                  # Infrastructure layer
+│   │       ├── backends/           # Storage implementations
+│   │       ├── db/                 # Database & repositories
+│   │       ├── http/               # HTTP handlers & routes
+│   │       └── observability/      # Metrics & logging
+│   └── docs/                       # Swagger docs (generated)
 ├── frontend/
 │   ├── src/
-│   │   ├── components/       # React components
-│   │   ├── hooks/            # React Query hooks
-│   │   ├── pages/            # Route pages
-│   │   └── lib/              # Utilities and API client
-│   └── public/               # Static assets
-└── docker-compose.yml        # Docker orchestration
+│   │   ├── components/
+│   │   │   ├── features/           # Feature-specific components
+│   │   │   ├── layout/             # Layout components
+│   │   │   ├── shared/             # Shared components
+│   │   │   └── ui/                 # shadcn/ui primitives
+│   │   ├── hooks/                  # React Query hooks
+│   │   ├── pages/                  # Route pages
+│   │   ├── lib/                    # API client & utilities
+│   │   └── store/                  # Zustand stores
+│   └── public/                     # Static assets
+└── docker-compose.yml              # Container orchestration
 ```
 
-## Storage Backends
-
-### Local Filesystem
-Store backups on the local filesystem.
-
-### S3-Compatible
-Compatible with Amazon S3 and S3-compatible services (MinIO, DigitalOcean Spaces, etc.).
-
-### SFTP
-Backup to remote servers via SFTP protocol.
+---
 
 ## Development
 
 ### Prerequisites
-- Go 1.24+
-- Node.js 20+
-- pnpm (for frontend)
-- Docker & Docker Compose (optional)
+- **Go** 1.24+
+- **Node.js** 20+
+- **pnpm** (package manager)
+- **Docker** & Docker Compose (optional)
 
 ### Building for Production
 
 ```bash
-# Using Docker Compose
+# Docker Compose
 docker compose build
 
 # Manual builds
-# Backend
-cd backend
-go build -o savesyncd cmd/savesyncd/main.go
-
-# Frontend
-cd frontend
-pnpm build
+cd backend && go build -o savesyncd cmd/savesyncd/main.go
+cd frontend && pnpm build
 ```
+
+---
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Whether it's bug fixes, features, or documentation improvements.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### How to Contribute
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Development Tips
+- Run tests before submitting PRs
+- Follow existing code style
+- Update documentation for new features
+- Add tests for bug fixes
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
 
 ## Acknowledgments
 
-- Built with [Go](https://golang.org/)
-- UI powered by [shadcn/ui](https://ui.shadcn.com/)
-- Icons from [Lucide](https://lucide.dev/)
+Built with excellent open-source tools:
+- [Go](https://golang.org/) - Backend language
+- [React](https://react.dev/) - Frontend framework
+- [shadcn/ui](https://ui.shadcn.com/) - UI components
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [Lucide](https://lucide.dev/) - Icons
+- [Chi](https://go-chi.io/) - HTTP router
+- [Zap](https://github.com/uber-go/zap) - Structured logging
+
+---
+
+<div align="center">
+
+**[Documentation](docs/) • [Report Bug](https://github.com/axelfrache/savesync/issues) • [Request Feature](https://github.com/axelfrache/savesync/issues)**
+
+Made with care for the open-source community
+
+</div>
