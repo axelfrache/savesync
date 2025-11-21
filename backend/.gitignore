@@ -1,0 +1,34 @@
+# Binaires
+savesyncd
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Documentation générée
+docs/
+
+# Base de données
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Fichiers temporaires
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+
+# Tests
+coverage.out
+*.test
