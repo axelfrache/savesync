@@ -8,7 +8,7 @@ type Backend interface {
 	LoadChunk(ctx context.Context, hash string) ([]byte, error)
 	DeleteChunk(ctx context.Context, hash string) error
 	ChunkExists(ctx context.Context, hash string) (bool, error)
-	StoreManifest(ctx context.Context, snapshotID string, manifest []byte) error
+	StoreManifest(ctx context.Context, snapshotID string, data []byte) error
 	LoadManifest(ctx context.Context, snapshotID string) ([]byte, error)
 	DeleteManifest(ctx context.Context, snapshotID string) error
 	Close() error

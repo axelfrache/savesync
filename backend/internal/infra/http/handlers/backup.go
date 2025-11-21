@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/axelfrache/savesync/internal/app/backupservice"
 	"github.com/axelfrache/savesync/internal/app/jobservice"
+	"github.com/axelfrache/savesync/internal/app/sourceservice"
 	"github.com/axelfrache/savesync/internal/app/targetservice"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -16,6 +19,7 @@ type BackupHandler struct {
 	backupService *backupservice.Service
 	targetService *targetservice.Service
 	jobService    *jobservice.Service
+	sourceService *sourceservice.Service
 	logger        *zap.Logger
 }
 
@@ -24,12 +28,14 @@ func NewBackupHandler(
 	backupService *backupservice.Service,
 	targetService *targetservice.Service,
 	jobService *jobservice.Service,
+	sourceService *sourceservice.Service,
 	logger *zap.Logger,
 ) *BackupHandler {
 	return &BackupHandler{
 		backupService: backupService,
 		targetService: targetService,
 		jobService:    jobService,
+		sourceService: sourceService,
 		logger:        logger,
 	}
 }
@@ -53,21 +59,47 @@ func (h *BackupHandler) Run(w http.ResponseWriter, r *http.Request) {
 
 	// Run backup asynchronously
 	go func() {
-		ctx := r.Context()
+		// Create a background context since the request context will be cancelled
+		ctx := context.Background()
 
 		// Update job status to running
 		h.jobService.UpdateStatus(ctx, job.ID, "running", nil)
 
 		// Get source to find target
-		// Note: In a real implementation, we'd pass the source through or fetch it
-		// For now, we'll use a simplified approach
+		source, err := h.sourceService.GetByID(ctx, sourceID)
+		if err != nil {
+			h.logger.Error("failed to get source for backup", zap.Error(err), zap.Int64("source_id", sourceID))
+			h.jobService.UpdateStatus(ctx, job.ID, "failed", fmt.Errorf("failed to get source: %w", err))
+			return
+		}
 
-		// This is a placeholder - in the actual main.go, we'll wire this properly
+		if source.TargetID == nil {
+			h.logger.Error("source has no target", zap.Int64("source_id", sourceID))
+			h.jobService.UpdateStatus(ctx, job.ID, "failed", fmt.Errorf("source has no target configured"))
+			return
+		}
+
+		// Initialize backend
+		backend, err := h.targetService.GetBackend(ctx, *source.TargetID)
+		if err != nil {
+			h.logger.Error("failed to initialize backend", zap.Error(err), zap.Int64("target_id", *source.TargetID))
+			h.jobService.UpdateStatus(ctx, job.ID, "failed", fmt.Errorf("failed to initialize backend: %w", err))
+			return
+		}
+		defer backend.Close()
+
 		h.logger.Info("backup job started", zap.Int64("job_id", job.ID), zap.Int64("source_id", sourceID))
 
-		// The actual backup execution will be wired in main.go
-		// For now, just update the job as pending
-		h.jobService.UpdateStatus(ctx, job.ID, "pending", nil)
+		// Run backup
+		if err := h.backupService.RunBackup(ctx, sourceID, backend); err != nil {
+			h.logger.Error("backup failed", zap.Error(err), zap.Int64("job_id", job.ID))
+			h.jobService.UpdateStatus(ctx, job.ID, "failed", fmt.Errorf("backup failed: %w", err))
+			return
+		}
+
+		// Update job as success
+		h.jobService.UpdateStatus(ctx, job.ID, "success", nil)
+		h.logger.Info("backup job completed successfully", zap.Int64("job_id", job.ID))
 	}()
 
 	WriteJSON(w, http.StatusAccepted, map[string]interface{}{

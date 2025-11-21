@@ -1,0 +1,19 @@
+# Ignore node_modules in frontend
+frontend/node_modules
+frontend/dist
+frontend/.vite
+
+# Ignore Go build artifacts in backend
+backend/savesync
+backend/savesyncd
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Ignore data directories
+data/
+backups/
+
+# Ignore environment files
+.env
+.env.local

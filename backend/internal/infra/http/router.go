@@ -85,8 +85,21 @@ func NewRouter(
 		})
 
 		// Backup trigger
-		backupHandler := handlers.NewBackupHandler(backupService, targetService, jobService, logger)
+		backupHandler := handlers.NewBackupHandler(backupService, targetService, jobService, sourceService, logger)
 		r.Post("/sources/{id}/run", backupHandler.Run)
+
+		// Snapshots
+		snapshotHandler := handlers.NewSnapshotHandler(backupService, sourceService, targetService, logger)
+		r.Route("/snapshots", func(r chi.Router) {
+			r.Get("/", snapshotHandler.List)
+			r.Get("/{id}", snapshotHandler.Get)
+			r.Get("/{id}/manifest", snapshotHandler.GetManifest)
+			r.Post("/{id}/restore", snapshotHandler.Restore)
+		})
+
+		// System (File Explorer)
+		systemHandler := handlers.NewSystemHandler(logger)
+		r.Get("/system/files", systemHandler.ListFiles)
 	})
 
 	return r

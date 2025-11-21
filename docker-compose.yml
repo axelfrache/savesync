@@ -1,0 +1,54 @@
+services:
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: savesync-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DB_PATH=/data/savesync.db
+      - LOG_LEVEL=info
+      - CHUNK_SIZE=4194304
+    volumes:
+      - backend-data:/data
+      - backup-storage:/backups
+      - ${HOME}:${HOME} # Mount home directory to allow backing up local files
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - savesync-network
+
+  # Frontend UI
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8080/api
+    container_name: savesync-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - savesync-network
+
+volumes:
+  backend-data:
+    driver: local
+  backup-storage:
+    driver: local
+
+networks:
+  savesync-network:
+    driver: bridge

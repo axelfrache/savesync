@@ -243,3 +243,64 @@ func (s *Service) shouldExclude(path string, patterns []string) bool {
 	}
 	return false
 }
+
+// ListSnapshots returns all snapshots
+func (s *Service) ListSnapshots(ctx context.Context) ([]*domain.Snapshot, error) {
+	return s.snapshotRepo.GetAll(ctx)
+}
+
+// GetSnapshot returns a snapshot by ID
+func (s *Service) GetSnapshot(ctx context.Context, id int64) (*domain.Snapshot, error) {
+	return s.snapshotRepo.GetByID(ctx, id)
+}
+
+// RestoreSnapshot restores a snapshot
+func (s *Service) RestoreSnapshot(ctx context.Context, id int64) error {
+	// TODO: Implement restore logic
+	return fmt.Errorf("restore not implemented")
+}
+
+// GetManifest returns the manifest for a snapshot
+func (s *Service) GetManifest(ctx context.Context, id int64) ([]byte, error) {
+	snapshot, err := s.snapshotRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get snapshot: %w", err)
+	}
+
+	source, err := s.sourceRepo.GetByID(ctx, snapshot.SourceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get source: %w", err)
+	}
+
+	if source.TargetID == nil {
+		return nil, fmt.Errorf("source has no target")
+	}
+
+	// We need the backend to retrieve the manifest
+	// Ideally, we should inject the target service or have a way to get the backend
+	// For now, let's assume we can't easily get the backend here without circular deps if we inject TargetService
+	// Refactoring might be needed, but for now, let's change the signature or dependency.
+
+	// WAIT: Service struct doesn't have TargetService. It has TargetRepo.
+	// But TargetRepo doesn't give us the backend client.
+	// The BackupHandler has both services.
+	// So the Handler should get the backend and pass it to the Service?
+	// Or the Service should have a way to create the backend.
+
+	// In RunBackup, we pass the backend.
+	// Let's do the same here.
+	return nil, fmt.Errorf("not implemented: requires backend injection")
+}
+
+// GetManifestWithBackend returns the manifest using the provided backend
+func (s *Service) GetManifestWithBackend(ctx context.Context, id int64, backend domain.Backend) ([]byte, error) {
+	// The manifest is stored with the snapshot ID as key (or similar)
+	// In RunBackup: backend.StoreManifest(ctx, strconv.FormatInt(snapshot.ID, 10), manifestJSON)
+
+	manifestJSON, err := backend.LoadManifest(ctx, strconv.FormatInt(id, 10))
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve manifest: %w", err)
+	}
+
+	return manifestJSON, nil
+}

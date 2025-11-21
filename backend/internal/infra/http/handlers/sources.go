@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -105,10 +106,12 @@ func (h *SourceHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.Create(r.Context(), source); err != nil {
 		if err == domain.ErrInvalidPath {
-			WriteError(w, http.StatusBadRequest, "Invalid path: directory does not exist")
+			h.logger.Warn("invalid path provided", zap.String("path", source.Path))
+			WriteError(w, http.StatusBadRequest, fmt.Sprintf("Invalid path: directory does not exist (%s)", source.Path))
 			return
 		}
 		if err == domain.ErrInvalidInput {
+			h.logger.Warn("invalid input", zap.Any("source", source))
 			WriteError(w, http.StatusBadRequest, "Invalid input")
 			return
 		}
