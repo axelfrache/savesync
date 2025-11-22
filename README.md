@@ -4,103 +4,86 @@
 
 ### Modern Deduplicating Backup Solution
 
-A production-ready backup system with content-defined chunking (CDC), multiple storage backends, and a beautiful web interface.
+A production-ready backup system with content-defined chunking, multi-user authentication, and multiple storage backends.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
 
-[Features](#features) • [Quick Start](#quick-start) • [Documentation](#api-documentation) • [Contributing](#contributing)
+[Features](#features) • [Quick Start](#quick-start) • [Storage](#storage-backends)
 
 </div>
 
 ---
 
-## Overview
-
-SaveSync combines enterprise-grade backup capabilities with an intuitive web interface. Built for reliability and efficiency, it uses content-defined chunking for optimal storage deduplication across local, cloud, and remote storage backends.
-
-## Features
-
-<table>
-<tr>
-<td width="50%">
+## ✨ Features
 
 ### Core Capabilities
-- **Content-Defined Chunking (CDC)** - Efficient deduplication using rolling hash
-- **Multi-Backend Support** - Local, S3, and SFTP storage
-- **Snapshot Management** - Browse, restore, and download snapshots
-- **Flexible Scheduling** - Manual, hourly, daily, weekly, or cron-based
-
-</td>
-<td width="50%">
+- 🔐 **Multi-User Authentication** - JWT-based auth with bcrypt password hashing
+- 🧩 **Content-Defined Chunking** - Efficient deduplication using rolling hash (CDC)
+- 💾 **Multiple Storage Backends** - Local filesystem, S3-compatible, and SFTP
+- 📸 **Snapshot Management** - Browse file trees, restore data, download manifests
+- ⏰ **Flexible Scheduling** - Manual, hourly, daily, weekly, or custom cron expressions
 
 ### User Experience
-- **Modern Web UI** - Clean, responsive React interface
-- **Dark/Light Modes** - Seamless theme switching
-- **Real-time Updates** - Live job status and progress
-- **File Explorer** - Browse backed-up files in tree view
+- 🎨 **Modern Web UI** - Clean React interface with dark/light mode support
+- 📁 **File Explorer** - Navigate directories and browse snapshot content
+- 📊 **Real-time Status** - Live job monitoring and progress tracking
+- 🔒 **Secure by Default** - Per-user data isolation and protected API endpoints
 
-</td>
-</tr>
-</table>
+---
 
 ## Architecture
 
 ```mermaid
 graph LR
-    A[React UI] -->|REST API| B[Go Backend]
+    A[React Frontend] -->|JWT Auth| B[Go Backend API]
     B -->|Metadata| C[(SQLite)]
     B -->|Chunks & Manifests| D[Storage Backend]
     D -->|Local| E[Filesystem]
-    D -->|Cloud| F[S3-Compatible]
-    D -->|Remote| G[SFTP]
+    D -->|Cloud| F[S3/MinIO/Backblaze]
+    D -->|Remote| G[SFTP Server]
 ```
 
-<details>
-<summary><b>Technology Stack</b></summary>
-
-### Backend
-- **Language**: Go 1.24+
-- **Router**: Chi (lightweight, idiomatic)
-- **Database**: SQLite with modernc.org driver
-- **Logging**: Zap (structured, high-performance)
-- **Metrics**: Prometheus integration
-- **API Docs**: Swagger/OpenAPI
-
-### Frontend
-- **Framework**: React 18 + TypeScript
-- **Build Tool**: Vite (fast, modern)
-- **UI Library**: shadcn/ui + Tailwind CSS
-- **State**: React Query + Zustand
-- **Routing**: React Router v6
-- **Icons**: Lucide React
-
-</details>
+**Tech Stack:**
+- **Backend**: Go 1.24+, Chi router, SQLite, Zap logging, Prometheus metrics
+- **Frontend**: React 18 + TypeScript, Vite, shadcn/ui, Tailwind CSS, React Query, Zustand
+- **Auth**: JWT tokens (HS256) + bcrypt password hashing
+- **API**: RESTful with Swagger/OpenAPI documentation
 
 ---
 
 ## Quick Start
 
-### Docker Compose (Recommended)
+### Prerequisites
+- Docker & Docker Compose **OR**
+- Go 1.24+ and Node.js 20+
+
+### Option 1: Docker Compose (Recommended)
 
 ```bash
-# Clone and start
+# Clone repository
 git clone https://github.com/axelfrache/savesync.git
 cd savesync
+
+# Start services
 docker compose up -d
+
+# Access the application
+# Frontend: http://localhost:5173
+# Backend:  http://localhost:8080
+# Swagger:  http://localhost:8080/swagger/index.html
+
+# Default credentials
+# Email:    admin@savesync.local
+# Password: admin123
 ```
 
-**Access Points:**
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:8080/api
-- **Swagger Docs**: http://localhost:8080/swagger/index.html
-
-### Manual Setup
+### Option 2: Manual Setup
 
 <details>
-<summary><b>Backend</b></summary>
+<summary><b>Backend Setup</b></summary>
 
 ```bash
 cd backend
@@ -112,7 +95,7 @@ go run cmd/savesyncd/main.go
 </details>
 
 <details>
-<summary><b>Frontend</b></summary>
+<summary><b>Frontend Setup</b></summary>
 
 ```bash
 cd frontend
@@ -128,21 +111,17 @@ pnpm dev
 
 | Backend | Use Case | Configuration |
 |---------|----------|---------------|
-| **Local** | On-premise backups | `path` - Filesystem directory |
-| **S3** | Cloud storage (AWS, MinIO, Backblaze) | `bucket`, `region`, `access_key`, `secret_key`, `endpoint` |
-| **SFTP** | Remote server backups | `host`, `port`, `user`, `password` or `key_path`, `path` |
+| **Local** | On-premise backups | `path` - Local directory path |
+| **S3** | Cloud storage | `bucket`, `region`, `access_key`, `secret_key`, `endpoint` |
+| **SFTP** | Remote servers | `host`, `port`, `user`, `password` or `key_path`, `path` |
+
+**Supported S3 Providers:** AWS S3, MinIO, Backblaze B2, DigitalOcean Spaces
 
 ---
 
-## API Documentation
+## Documentation
 
-Interactive Swagger UI available at `/swagger/index.html` when running the backend.
-
-**Regenerate docs:**
-```bash
-cd backend
-swag init -g cmd/savesyncd/main.go
-```
+- **API Documentation**: Available at `/swagger/index.html` when running
 
 ---
 
@@ -152,114 +131,33 @@ swag init -g cmd/savesyncd/main.go
 
 **Backend:**
 ```bash
-PORT=8080                          # HTTP server port
-DB_PATH=./data/savesync.db         # SQLite database path
-DATA_DIR=./data                    # Local storage directory
-LOG_LEVEL=info                     # debug, info, warn, error
+PORT=8080                       # HTTP server port
+DB_PATH=./data/savesync.db      # SQLite database location
+DATA_DIR=./data                 # Local storage directory
+LOG_LEVEL=info                  # Logging level (debug, info, warn, error)
+JWT_SECRET=change-me            # JWT signing secret (change in production!)
 ```
 
 **Frontend:**
 ```bash
-VITE_API_URL=http://localhost:8080/api
+VITE_API_URL=http://localhost:8080   # Backend API URL
 ```
 
 ---
 
 ## Testing
 
-### Backend Tests
 ```bash
+# Backend tests with coverage
 cd backend
-
-# All tests with coverage
 go test -v -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 
-# Specific package
+# Specific package tests
 go test -v ./internal/app/backupservice/...
 ```
 
-### CI/CD Pipeline
-
-GitHub Actions workflow automates:
-- Backend unit tests
-- Swagger documentation generation
-- Docker image builds (backend + frontend)
-
----
-
-## Project Structure
-
-```
-savesync/
-├── backend/
-│   ├── cmd/savesyncd/              # Main application entry
-│   ├── internal/
-│   │   ├── app/                    # Business logic (services)
-│   │   ├── domain/                 # Models, interfaces, errors
-│   │   └── infra/                  # Infrastructure layer
-│   │       ├── backends/           # Storage implementations
-│   │       ├── db/                 # Database & repositories
-│   │       ├── http/               # HTTP handlers & routes
-│   │       └── observability/      # Metrics & logging
-│   └── docs/                       # Swagger docs (generated)
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── features/           # Feature-specific components
-│   │   │   ├── layout/             # Layout components
-│   │   │   ├── shared/             # Shared components
-│   │   │   └── ui/                 # shadcn/ui primitives
-│   │   ├── hooks/                  # React Query hooks
-│   │   ├── pages/                  # Route pages
-│   │   ├── lib/                    # API client & utilities
-│   │   └── store/                  # Zustand stores
-│   └── public/                     # Static assets
-└── docker-compose.yml              # Container orchestration
-```
-
----
-
-## Development
-
-### Prerequisites
-- **Go** 1.24+
-- **Node.js** 20+
-- **pnpm** (package manager)
-- **Docker** & Docker Compose (optional)
-
-### Building for Production
-
-```bash
-# Docker Compose
-docker compose build
-
-# Manual builds
-cd backend && go build -o savesyncd cmd/savesyncd/main.go
-cd frontend && pnpm build
-```
-
----
-
-## Contributing
-
-Contributions are welcome! Whether it's bug fixes, features, or documentation improvements.
-
-### How to Contribute
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### Development Tips
-- Run tests before submitting PRs
-- Follow existing code style
-- Update documentation for new features
-- Add tests for bug fixes
-
----
+**CI/CD:** GitHub Actions automatically runs tests and builds Docker images on push.
 
 ## License
 
@@ -270,20 +168,19 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ## Acknowledgments
 
 Built with excellent open-source tools:
-- [Go](https://golang.org/) - Backend language
-- [React](https://react.dev/) - Frontend framework
+- [Go](https://golang.org/) - Backend
+- [React](https://react.dev/) - Frontend
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
 - [Tailwind CSS](https://tailwindcss.com/) - Styling
-- [Lucide](https://lucide.dev/) - Icons
 - [Chi](https://go-chi.io/) - HTTP router
-- [Zap](https://github.com/uber-go/zap) - Structured logging
+- [Zap](https://github.com/uber-go/zap) - Logging
 
 ---
 
 <div align="center">
 
-**[Documentation](docs/) • [Report Bug](https://github.com/axelfrache/savesync/issues) • [Request Feature](https://github.com/axelfrache/savesync/issues)**
+**[Report Bug](https://github.com/axelfrache/savesync/issues) • [Request Feature](https://github.com/axelfrache/savesync/issues)**
 
-Made with care for the open-source community
+Made with ❤️ for the open-source community
 
 </div>
