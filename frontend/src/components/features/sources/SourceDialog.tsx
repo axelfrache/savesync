@@ -107,7 +107,7 @@ export default function SourceDialog({ open, onOpenChange, source }: SourceDialo
             <DialogContent className="bg-card border-border text-foreground sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>{source ? 'Edit Source' : 'Add Source'}</DialogTitle>
-                    <DialogDescription className="text-slate-400">
+                    <DialogDescription className="text-muted-foreground">
                         {source ? 'Update the source configuration' : 'Configure a new backup source'}
                     </DialogDescription>
                 </DialogHeader>
@@ -119,7 +119,7 @@ export default function SourceDialog({ open, onOpenChange, source }: SourceDialo
                             id="name"
                             {...register('name', { required: 'Name is required' })}
                             placeholder="My Documents"
-                            className="bg-slate-800 border-slate-700"
+                            className="bg-input border-input"
                         />
                         {errors.name && (
                             <p className="text-sm text-red-400">{errors.name.message}</p>
@@ -147,10 +147,10 @@ export default function SourceDialog({ open, onOpenChange, source }: SourceDialo
                                 setValue('target_id', isNaN(id) ? null : id);
                             }}
                         >
-                            <SelectTrigger className="bg-slate-800 border-slate-700">
+                            <SelectTrigger className="bg-input border-input">
                                 <SelectValue placeholder="Select a target" />
                             </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700">
+                            <SelectContent className="bg-popover border-border">
                                 {targets?.map((target) => (
                                     <SelectItem key={target.id} value={target.id.toString()}>
                                         {target.name} ({target.type})
@@ -167,7 +167,7 @@ export default function SourceDialog({ open, onOpenChange, source }: SourceDialo
                             value={exclusionsValue.join(', ')}
                             onChange={(e) => handleExclusionsChange(e.target.value)}
                             placeholder="*.tmp, *.log, node_modules"
-                            className="bg-slate-800 border-slate-700"
+                            className="bg-input border-input"
                         />
                         <p className="text-xs text-slate-500">
                             Glob patterns to exclude from backup

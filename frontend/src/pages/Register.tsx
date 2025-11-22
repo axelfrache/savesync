@@ -1,49 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { authApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Lock } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 
-export default function LoginPage() {
+export default function RegisterPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { login, isLoading } = useAuthStore();
+    const { register, isLoading } = useAuthStore();
     const navigate = useNavigate();
     const { toast } = useToast();
-    const [registrationEnabled, setRegistrationEnabled] = useState(false);
-
-    useEffect(() => {
-        authApi.getSettings()
-            .then((settings) => {
-                setRegistrationEnabled(settings.registration_enabled);
-            })
-            .catch((err) => console.error('Failed to fetch settings:', err));
-    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         try {
-            await login(email, password);
+            await register(email, password);
             toast({
-                title: 'Welcome back!',
-                description: 'You have successfully logged in.',
+                title: 'Account created!',
+                description: 'You have successfully registered and logged in.',
             });
             navigate('/');
         } catch (error: any) {
-            console.error('Login error:', error);
+            console.error('Registration error:', error);
+            // Handle different error structures
             const message = error.response?.data?.error?.message ||
                 error.response?.data?.message ||
                 error.message ||
-                'Invalid email or password';
+                'Failed to register';
 
             toast({
-                title: 'Login failed',
+                title: 'Registration failed',
                 description: message,
                 variant: 'destructive',
             });
@@ -56,12 +47,12 @@ export default function LoginPage() {
                 <CardHeader className="space-y-1">
                     <div className="flex items-center justify-center mb-4">
                         <div className="p-3 bg-primary/10 rounded-full">
-                            <Lock className="h-8 w-8 text-primary" />
+                            <UserPlus className="h-8 w-8 text-primary" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl text-center">Welcome to SaveSync</CardTitle>
+                    <CardTitle className="text-2xl text-center">Create an Account</CardTitle>
                     <CardDescription className="text-center">
-                        Enter your credentials to access your backups
+                        Enter your email and password to create your account
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -71,7 +62,7 @@ export default function LoginPage() {
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="admin@savesync.local"
+                                placeholder="name@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -91,22 +82,14 @@ export default function LoginPage() {
                             />
                         </div>
                         <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? 'Signing in...' : 'Sign In'}
+                            {isLoading ? 'Creating account...' : 'Create Account'}
                         </Button>
                     </form>
-                    {registrationEnabled && (
-                        <div className="mt-4 text-center text-sm">
-                            <span className="text-muted-foreground">Don't have an account? </span>
-                            <Link to="/register" className="text-primary hover:underline font-medium">
-                                Sign up
-                            </Link>
-                        </div>
-                    )}
-                    <div className="mt-4 text-center text-sm text-muted-foreground">
-                        <p>Default credentials:</p>
-                        <p className="font-mono text-xs mt-1">
-                            admin@savesync.local / admin123
-                        </p>
+                    <div className="mt-4 text-center text-sm">
+                        <span className="text-muted-foreground">Already have an account? </span>
+                        <Link to="/login" className="text-primary hover:underline font-medium">
+                            Sign in
+                        </Link>
                     </div>
                 </CardContent>
             </Card>

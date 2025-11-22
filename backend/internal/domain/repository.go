@@ -12,6 +12,13 @@ type UserRepository interface {
 	Delete(ctx context.Context, id int64) error
 }
 
+// SettingsRepository handles application settings persistence
+type SettingsRepository interface {
+	Get(ctx context.Context, key string) (*Setting, error)
+	Set(ctx context.Context, key, value string) error
+	GetAll(ctx context.Context) (map[string]string, error)
+}
+
 type SourceRepository interface {
 	Create(ctx context.Context, source *Source) error
 	GetByID(ctx context.Context, id int64) (*Source, error)

@@ -5,22 +5,25 @@ import (
 	"net/http"
 
 	"github.com/axelfrache/savesync/internal/app/authservice"
+	"github.com/axelfrache/savesync/internal/app/settingsservice"
 	"github.com/axelfrache/savesync/internal/app/userservice"
 	"github.com/axelfrache/savesync/internal/infra/http/middleware"
 	"go.uber.org/zap"
 )
 
 type AuthHandler struct {
-	userService *userservice.Service
-	authService *authservice.Service
-	logger      *zap.Logger
+	userService     *userservice.Service
+	authService     *authservice.Service
+	settingsService *settingsservice.Service
+	logger          *zap.Logger
 }
 
-func NewAuthHandler(userService *userservice.Service, authService *authservice.Service, logger *zap.Logger) *AuthHandler {
+func NewAuthHandler(userService *userservice.Service, authService *authservice.Service, settingsService *settingsservice.Service, logger *zap.Logger) *AuthHandler {
 	return &AuthHandler{
-		userService: userService,
-		authService: authService,
-		logger:      logger,
+		userService:     userService,
+		authService:     authService,
+		settingsService: settingsService,
+		logger:          logger,
 	}
 }
 
@@ -54,6 +57,19 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Check if registration is enabled
+	enabled, err := h.settingsService.IsRegistrationEnabled(r.Context())
+	if err != nil {
+		h.logger.Error("failed to check registration status", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "Failed to check registration status")
+		return
+	}
+
+	if !enabled {
+		WriteError(w, http.StatusForbidden, "Registration is currently disabled. Contact an administrator.")
 		return
 	}
 
@@ -152,4 +168,27 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, user)
+}
+
+// GetPublicSettings godoc
+// @Summary Get public application settings
+// @Description Get public settings like registration status
+// @Tags auth
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} handlers.ErrorInfo
+// @Router /auth/settings [get]
+func (h *AuthHandler) GetPublicSettings(w http.ResponseWriter, r *http.Request) {
+	enabled, err := h.settingsService.IsRegistrationEnabled(r.Context())
+	if err != nil {
+		h.logger.Error("failed to check registration status", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "Failed to get settings")
+		return
+	}
+
+	response := map[string]interface{}{
+		"registration_enabled": enabled,
+	}
+
+	WriteJSON(w, http.StatusOK, response)
 }

@@ -10,11 +10,16 @@ import Targets from '@/pages/Targets';
 import Jobs from '@/pages/Jobs';
 import Settings from '@/pages/Settings';
 import LoginPage from '@/pages/Login';
+import RegisterPage from '@/pages/Register';
 
 export const router = createBrowserRouter([
     {
         path: '/login',
         element: <LoginPage />,
+    },
+    {
+        path: '/register',
+        element: <RegisterPage />,
     },
     {
         path: '/',

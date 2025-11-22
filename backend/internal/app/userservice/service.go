@@ -125,6 +125,21 @@ func (s *Service) GetAll(ctx context.Context) ([]*domain.User, error) {
 	return users, nil
 }
 
+// Update updates a user
+func (s *Service) Update(ctx context.Context, user *domain.User) error {
+	return s.userRepo.Update(ctx, user)
+}
+
+// SetAdminStatus updates the admin status of a user
+func (s *Service) SetAdminStatus(ctx context.Context, id int64, isAdmin bool) error {
+	user, err := s.userRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	user.IsAdmin = isAdmin
+	return s.userRepo.Update(ctx, user)
+}
+
 // Delete removes a user
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.userRepo.Delete(ctx, id)

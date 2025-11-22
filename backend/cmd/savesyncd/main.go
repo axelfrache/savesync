@@ -12,6 +12,7 @@ import (
 	"github.com/axelfrache/savesync/internal/app/authservice"
 	"github.com/axelfrache/savesync/internal/app/backupservice"
 	"github.com/axelfrache/savesync/internal/app/jobservice"
+	"github.com/axelfrache/savesync/internal/app/settingsservice"
 	"github.com/axelfrache/savesync/internal/app/sourceservice"
 	"github.com/axelfrache/savesync/internal/app/targetservice"
 	"github.com/axelfrache/savesync/internal/app/userservice"
@@ -88,7 +89,7 @@ func main() {
 
 	if userCount == 0 {
 		_, err = database.DB.Exec(
-			"INSERT INTO users (email, password_hash, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+			"INSERT INTO users (email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
 			"admin@savesync.local",
 			string(hashedPassword),
 		)
@@ -101,8 +102,17 @@ func main() {
 		)
 	}
 
+	// Initialize default settings
+	_, err = database.DB.Exec(
+		"INSERT OR IGNORE INTO settings (key, value) VALUES ('registration_enabled', 'false')",
+	)
+	if err != nil {
+		logger.Warn("failed to initialize default settings", zap.Error(err))
+	}
+
 	// Initialize repositories
 	userRepo := db.NewUserRepository(database.DB)
+	settingsRepo := db.NewSettingsRepository(database.DB)
 	sourceRepo := repositories.NewSourceRepo(database.DB)
 	targetRepo := repositories.NewTargetRepo(database.DB)
 	snapshotRepo := repositories.NewSnapshotRepo(database.DB)
@@ -113,6 +123,7 @@ func main() {
 
 	// Initialize services
 	userService := userservice.New(userRepo, logger)
+	settingsService := settingsservice.New(settingsRepo, logger)
 	authService := authservice.New("your-secret-key-change-in-production", 24*time.Hour)
 	sourceService := sourceservice.New(sourceRepo, logger)
 	targetService := targetservice.New(targetRepo, backendRegistry, logger)
@@ -125,6 +136,7 @@ func main() {
 	router := httpinfra.NewRouter(
 		userService,
 		authService,
+		settingsService,
 		sourceService,
 		targetService,
 		backupService,

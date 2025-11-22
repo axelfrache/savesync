@@ -40,6 +40,7 @@ export const authApi = {
     register: (email: string, password: string) =>
         axiosInstance.post('/auth/register', { email, password }).then((res) => res.data.data),
     me: () => axiosInstance.get('/auth/me').then((res) => res.data.data),
+    getSettings: () => axiosInstance.get('/auth/settings').then((res) => res.data.data),
 };
 
 export const sourcesApi = {
@@ -70,6 +71,20 @@ export const snapshotsApi = {
 export const jobsApi = {
     list: () => unwrap<Job[]>(axiosInstance.get('/api/jobs')),
     get: (id: number) => unwrap<Job>(axiosInstance.get(`/api/jobs/${id}`)),
+};
+
+export const settingsApi = {
+    getAll: () => unwrap<Record<string, string>>(axiosInstance.get('/api/settings')),
+    update: (key: string, value: string) =>
+        axiosInstance.put('/api/settings', { key, value }).then((res) => res.data),
+};
+
+export const adminApi = {
+    listUsers: () => unwrap<any[]>(axiosInstance.get('/api/admin/users')),
+    createUser: (data: any) => unwrap<any>(axiosInstance.post('/api/admin/users', data)),
+    deleteUser: (id: number) => axiosInstance.delete(`/api/admin/users/${id}`),
+    toggleAdmin: (id: number, isAdmin: boolean) =>
+        axiosInstance.put(`/api/admin/users/${id}/admin`, { is_admin: isAdmin }),
 };
 
 export const healthApi = {

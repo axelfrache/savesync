@@ -6,6 +6,7 @@ import (
 	"github.com/axelfrache/savesync/internal/app/authservice"
 	"github.com/axelfrache/savesync/internal/app/backupservice"
 	"github.com/axelfrache/savesync/internal/app/jobservice"
+	"github.com/axelfrache/savesync/internal/app/settingsservice"
 	"github.com/axelfrache/savesync/internal/app/sourceservice"
 	"github.com/axelfrache/savesync/internal/app/targetservice"
 	"github.com/axelfrache/savesync/internal/app/userservice"
@@ -25,6 +26,7 @@ import (
 func NewRouter(
 	userService *userservice.Service,
 	authService *authservice.Service,
+	settingsService *settingsservice.Service,
 	sourceService *sourceservice.Service,
 	targetService *targetservice.Service,
 	backupService *backupservice.Service,
@@ -63,10 +65,11 @@ func NewRouter(
 	r.Handle("/metrics", promhttp.Handler())
 
 	// Auth routes (public)
-	authHandler := handlers.NewAuthHandler(userService, authService, logger)
+	authHandler := handlers.NewAuthHandler(userService, authService, settingsService, logger)
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.Register)
 		r.Post("/login", authHandler.Login)
+		r.Get("/settings", authHandler.GetPublicSettings)
 		r.With(authMiddleware).Get("/me", authHandler.Me)
 	})
 
@@ -118,6 +121,25 @@ func NewRouter(
 		// System (File Explorer)
 		systemHandler := handlers.NewSystemHandler(logger)
 		r.Get("/system/files", systemHandler.ListFiles)
+
+		// Settings (Admin only)
+		adminMiddleware := middleware.AdminMiddleware(userService, logger)
+		settingsHandler := handlers.NewSettingsHandler(settingsService, logger)
+		adminHandler := handlers.NewAdminHandler(userService, logger)
+
+		r.Route("/settings", func(r chi.Router) {
+			r.Use(adminMiddleware)
+			r.Get("/", settingsHandler.GetSettings)
+			r.Put("/", settingsHandler.UpdateSetting)
+		})
+
+		r.Route("/admin", func(r chi.Router) {
+			r.Use(adminMiddleware)
+			r.Get("/users", adminHandler.ListUsers)
+			r.Post("/users", adminHandler.CreateUser)
+			r.Delete("/users/{id}", adminHandler.DeleteUser)
+			r.Put("/users/{id}/admin", adminHandler.ToggleAdmin)
+		})
 	})
 
 	return r
