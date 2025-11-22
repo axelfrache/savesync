@@ -52,7 +52,7 @@ export default function Settings() {
                     <div>
                         <span className="text-muted-foreground">API Endpoint:</span>
                         <span className="ml-2 text-foreground">
-                            {import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}
+                            {import.meta.env.VITE_API_URL || 'http://localhost:8080'}
                         </span>
                     </div>
                 </CardContent>

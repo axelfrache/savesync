@@ -19,7 +19,7 @@ interface FileExplorerProps {
     initialPath?: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export function FileExplorer({ open, onOpenChange, onSelect, initialPath = '/' }: FileExplorerProps) {
     const [currentPath, setCurrentPath] = useState(initialPath);
@@ -31,17 +31,22 @@ export function FileExplorer({ open, onOpenChange, onSelect, initialPath = '/' }
         if (open) {
             loadDirectory(currentPath);
         }
-    }, [open, currentPath]);
+    }, [currentPath, open]);
 
     const loadDirectory = async (path: string) => {
         setLoading(true);
         setError(null);
         try {
-            const response = await axios.get(`${API_BASE_URL}/system/files`, {
+            const token = localStorage.getItem('auth_token');
+            const response = await axios.get(`${API_BASE_URL}/api/system/files`, {
                 params: { path },
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
-            setEntries(response.data.data.entries);
-            setCurrentPath(response.data.data.current_path);
+
+            // Backend returns { data: { current_path: "...", entries: [...] } }
+            const data = response.data.data;
+            setEntries(data.entries || []);
+            setCurrentPath(data.current_path || path);
         } catch (err) {
             setError('Failed to load directory');
             console.error(err);

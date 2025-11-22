@@ -19,7 +19,7 @@ export default function Snapshots() {
         e.stopPropagation();
 
         try {
-            const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/snapshots/${snapshotId}/manifest`;
+            const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/snapshots/${snapshotId}/manifest`;
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `manifest-${snapshotId}.json`);

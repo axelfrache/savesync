@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export interface FileNode {
     name: string;
@@ -16,7 +16,10 @@ export function useSnapshotFiles(snapshotId: number | undefined) {
     return useQuery({
         queryKey: ['snapshots', snapshotId, 'files'],
         queryFn: async () => {
-            const response = await axios.get(`${API_BASE_URL}/snapshots/${snapshotId}/files`);
+            const token = localStorage.getItem('auth_token');
+            const response = await axios.get(`${API_BASE_URL}/api/snapshots/${snapshotId}/files`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
             return response.data.data as FileNode;
         },
         enabled: !!snapshotId,

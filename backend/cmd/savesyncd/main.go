@@ -9,10 +9,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/axelfrache/savesync/internal/app/authservice"
 	"github.com/axelfrache/savesync/internal/app/backupservice"
 	"github.com/axelfrache/savesync/internal/app/jobservice"
 	"github.com/axelfrache/savesync/internal/app/sourceservice"
 	"github.com/axelfrache/savesync/internal/app/targetservice"
+	"github.com/axelfrache/savesync/internal/app/userservice"
 	"github.com/axelfrache/savesync/internal/config"
 	"github.com/axelfrache/savesync/internal/infra/backends"
 	"github.com/axelfrache/savesync/internal/infra/db"
@@ -20,6 +22,7 @@ import (
 	httpinfra "github.com/axelfrache/savesync/internal/infra/http"
 	"github.com/axelfrache/savesync/internal/infra/observability"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // @title SaveSync API
@@ -70,13 +73,47 @@ func main() {
 
 	logger.Info("database initialized")
 
+	// Create default admin user if no users exist
+	defaultPassword := "admin123"
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(defaultPassword), bcrypt.DefaultCost)
+	if err != nil {
+		logger.Fatal("failed to hash default password", zap.Error(err))
+	}
+
+	var userCount int
+	err = database.DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount)
+	if err != nil {
+		logger.Fatal("failed to check user count", zap.Error(err))
+	}
+
+	if userCount == 0 {
+		_, err = database.DB.Exec(
+			"INSERT INTO users (email, password_hash, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+			"admin@savesync.local",
+			string(hashedPassword),
+		)
+		if err != nil {
+			logger.Fatal("failed to create default admin user", zap.Error(err))
+		}
+		logger.Info("created default admin user",
+			zap.String("email", "admin@savesync.local"),
+			zap.String("password", defaultPassword),
+		)
+	}
+
+	// Initialize repositories
+	userRepo := db.NewUserRepository(database.DB)
 	sourceRepo := repositories.NewSourceRepo(database.DB)
 	targetRepo := repositories.NewTargetRepo(database.DB)
 	snapshotRepo := repositories.NewSnapshotRepo(database.DB)
 	jobRepo := repositories.NewJobRepo(database.DB)
 
+	// Initialize backend registry
 	backendRegistry := backends.NewRegistry()
 
+	// Initialize services
+	userService := userservice.New(userRepo, logger)
+	authService := authservice.New("your-secret-key-change-in-production", 24*time.Hour)
 	sourceService := sourceservice.New(sourceRepo, logger)
 	targetService := targetservice.New(targetRepo, backendRegistry, logger)
 	jobService := jobservice.New(jobRepo, logger)
@@ -84,7 +121,10 @@ func main() {
 
 	logger.Info("services initialized")
 
+	// Create HTTP router with all services
 	router := httpinfra.NewRouter(
+		userService,
+		authService,
 		sourceService,
 		targetService,
 		backupService,

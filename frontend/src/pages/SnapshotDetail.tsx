@@ -25,7 +25,7 @@ export default function SnapshotDetail() {
         try {
             // Create a temporary link to trigger the download
             // We use the API endpoint directly
-            const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/snapshots/${snapshot.id}/manifest`;
+            const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/snapshots/${snapshot.id}/manifest`;
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `manifest-${snapshot.id}.json`);

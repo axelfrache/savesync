@@ -2,9 +2,19 @@ package domain
 
 import "time"
 
+// User represents a user account
+type User struct {
+	ID           int64     `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"-"` // Never serialize
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
 // Source represents a directory to be backed up
 type Source struct {
 	ID         int64     `json:"id"`
+	UserID     int64     `json:"user_id"`
 	Name       string    `json:"name"`
 	Path       string    `json:"path"`
 	Exclusions []string  `json:"exclusions"` // Glob patterns to exclude
@@ -17,6 +27,7 @@ type Source struct {
 // Target represents a storage backend configuration
 type Target struct {
 	ID        int64             `json:"id"`
+	UserID    int64             `json:"user_id"`
 	Name      string            `json:"name"`
 	Type      string            `json:"type"` // local, s3, sftp
 	Config    map[string]string `json:"config"`
@@ -27,6 +38,7 @@ type Target struct {
 // Snapshot represents a backup snapshot at a point in time
 type Snapshot struct {
 	ID          int64      `json:"id"`
+	UserID      int64      `json:"user_id"`
 	SourceID    int64      `json:"source_id"`
 	TargetID    int64      `json:"target_id"`
 	Status      string     `json:"status"` // pending, running, success, failed
@@ -53,6 +65,7 @@ type SnapshotFile struct {
 // Job represents a backup job execution
 type Job struct {
 	ID         int64      `json:"id"`
+	UserID     int64      `json:"user_id"`
 	Type       string     `json:"type"` // backup, restore
 	SourceID   *int64     `json:"source_id,omitempty"`
 	SnapshotID *int64     `json:"snapshot_id,omitempty"`

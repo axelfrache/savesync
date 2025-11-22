@@ -3,10 +3,12 @@ package http
 import (
 	"net/http"
 
+	"github.com/axelfrache/savesync/internal/app/authservice"
 	"github.com/axelfrache/savesync/internal/app/backupservice"
 	"github.com/axelfrache/savesync/internal/app/jobservice"
 	"github.com/axelfrache/savesync/internal/app/sourceservice"
 	"github.com/axelfrache/savesync/internal/app/targetservice"
+	"github.com/axelfrache/savesync/internal/app/userservice"
 	"github.com/axelfrache/savesync/internal/infra/http/handlers"
 	"github.com/axelfrache/savesync/internal/infra/http/middleware"
 	"github.com/go-chi/chi/v5"
@@ -21,6 +23,8 @@ import (
 
 // Router creates and configures the HTTP router
 func NewRouter(
+	userService *userservice.Service,
+	authService *authservice.Service,
 	sourceService *sourceservice.Service,
 	targetService *targetservice.Service,
 	backupService *backupservice.Service,
@@ -28,6 +32,9 @@ func NewRouter(
 	logger *zap.Logger,
 ) http.Handler {
 	r := chi.NewRouter()
+
+	// Create auth middleware
+	authMiddleware := middleware.AuthMiddleware(authService, logger)
 
 	// Middleware
 	r.Use(chimiddleware.RequestID)
@@ -55,8 +62,18 @@ func NewRouter(
 	// Metrics
 	r.Handle("/metrics", promhttp.Handler())
 
-	// API routes
+	// Auth routes (public)
+	authHandler := handlers.NewAuthHandler(userService, authService, logger)
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/register", authHandler.Register)
+		r.Post("/login", authHandler.Login)
+		r.With(authMiddleware).Get("/me", authHandler.Me)
+	})
+
+	// API routes (protected by auth middleware)
 	r.Route("/api", func(r chi.Router) {
+		// Apply auth middleware to all /api routes
+		r.Use(authMiddleware)
 		// Sources
 		sourceHandler := handlers.NewSourceHandler(sourceService, logger)
 		r.Route("/sources", func(r chi.Router) {

@@ -32,7 +32,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://localhost:8080/api
+        - VITE_API_URL=http://localhost:8080
     container_name: savesync-frontend
     ports:
       - "5173:80"

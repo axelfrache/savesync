@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
+import ProtectedRoute from '@/components/shared/ProtectedRoute';
 import Dashboard from '@/pages/Dashboard';
 import Sources from '@/pages/Sources';
 import SourceDetail from '@/pages/SourceDetail';
@@ -8,11 +9,20 @@ import SnapshotDetail from '@/pages/SnapshotDetail';
 import Targets from '@/pages/Targets';
 import Jobs from '@/pages/Jobs';
 import Settings from '@/pages/Settings';
+import LoginPage from '@/pages/Login';
 
 export const router = createBrowserRouter([
     {
+        path: '/login',
+        element: <LoginPage />,
+    },
+    {
         path: '/',
-        element: <AppLayout />,
+        element: (
+            <ProtectedRoute>
+                <AppLayout />
+            </ProtectedRoute>
+        ),
         children: [
             {
                 index: true,

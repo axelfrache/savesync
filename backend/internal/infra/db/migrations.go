@@ -8,9 +8,20 @@ import (
 // migrate runs database migrations
 func (db *DB) migrate(ctx context.Context) error {
 	migrations := []string{
+		// Users table (must be first)
+		`CREATE TABLE IF NOT EXISTS users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			email TEXT UNIQUE NOT NULL,
+			password_hash TEXT NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
+
 		// Sources table
 		`CREATE TABLE IF NOT EXISTS sources (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER,
 			name TEXT NOT NULL UNIQUE,
 			path TEXT NOT NULL,
 			exclusions TEXT, -- JSON array
@@ -18,6 +29,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			schedule_id INTEGER,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 			FOREIGN KEY (target_id) REFERENCES targets(id) ON DELETE SET NULL,
 			FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE SET NULL
 		)`,
@@ -25,16 +37,19 @@ func (db *DB) migrate(ctx context.Context) error {
 		// Targets table
 		`CREATE TABLE IF NOT EXISTS targets (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER,
 			name TEXT NOT NULL UNIQUE,
 			type TEXT NOT NULL, -- local, s3, sftp
 			config TEXT NOT NULL, -- JSON object
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 		)`,
 
 		// Snapshots table
 		`CREATE TABLE IF NOT EXISTS snapshots (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER,
 			source_id INTEGER NOT NULL,
 			target_id INTEGER NOT NULL,
 			status TEXT NOT NULL DEFAULT 'pending', -- pending, running, success, failed
@@ -44,6 +59,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			error TEXT,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			completed_at TIMESTAMP,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 			FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE,
 			FOREIGN KEY (target_id) REFERENCES targets(id) ON DELETE CASCADE
 		)`,
@@ -64,6 +80,7 @@ func (db *DB) migrate(ctx context.Context) error {
 		// Jobs table
 		`CREATE TABLE IF NOT EXISTS jobs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER,
 			type TEXT NOT NULL, -- backup, restore
 			source_id INTEGER,
 			snapshot_id INTEGER,
@@ -71,6 +88,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			error TEXT,
 			started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			ended_at TIMESTAMP,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 			FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE SET NULL,
 			FOREIGN KEY (snapshot_id) REFERENCES snapshots(id) ON DELETE SET NULL
 		)`,
@@ -88,6 +106,10 @@ func (db *DB) migrate(ctx context.Context) error {
 		)`,
 
 		// Indexes for performance
+		`CREATE INDEX IF NOT EXISTS idx_sources_user_id ON sources(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_targets_user_id ON targets(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_snapshots_user_id ON snapshots(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON jobs(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_snapshots_source_id ON snapshots(source_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_snapshots_status ON snapshots(status)`,
 		`CREATE INDEX IF NOT EXISTS idx_snapshot_files_snapshot_id ON snapshot_files(snapshot_id)`,
