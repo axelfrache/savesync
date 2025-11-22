@@ -17,7 +17,7 @@ A production-ready backup system with content-defined chunking, multi-user authe
 
 ---
 
-## ✨ Features
+## Features
 
 ### Core Capabilities
 - 🔐 **Multi-User Authentication** - JWT-based auth with bcrypt password hashing
