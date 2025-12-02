@@ -8,6 +8,7 @@ metadata:
     app.kubernetes.io/part-of: savesync
   annotations:
     # Annotations pour Nginx Ingress Controller
+    nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     # Si vous utilisez cert-manager pour HTTPS:
@@ -18,7 +19,7 @@ metadata:
 spec:
   ingressClassName: nginx  # Remplacer par "traefik" si vous utilisez Traefik
   rules:
-    - host: savesync.yourdomain.com  # À remplacer par votre domaine
+    - host: savesync.axelfrache.com
       http:
         paths:
           # API Backend - path /api/*
@@ -26,7 +27,7 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: backend
+                name: savesync-backend
                 port:
                   number: 8080
           # Frontend - default path
@@ -34,7 +35,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: frontend
+                name: savesync-frontend
                 port:
                   number: 80
   # Pour HTTPS avec cert-manager:

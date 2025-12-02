@@ -6,8 +6,6 @@ namespace: savesync-staging
 bases:
   - ../../base
 
-namePrefix: staging-
-
 commonLabels:
   environment: staging
 
@@ -55,4 +53,4 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: savesync-staging.yourdomain.com
+        value: savesync-staging.axelfrache.com

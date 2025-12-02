@@ -6,8 +6,6 @@ namespace: savesync-dev
 bases:
   - ../../base
 
-namePrefix: dev-
-
 commonLabels:
   environment: dev
 
@@ -38,4 +36,4 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: savesync-dev.yourdomain.com
+        value: savesync-dev.axelfrache.com

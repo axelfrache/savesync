@@ -80,4 +80,4 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: savesync.yourdomain.com
+        value: savesync.axelfrache.com
