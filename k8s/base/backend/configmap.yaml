@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: savesync
+  labels:
+    app: backend
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: savesync
+data:
+  PORT: "8080"
+  LOG_LEVEL: "info"
+  CHUNK_SIZE: "4194304"
+  DB_PATH: "/data/savesync.db"

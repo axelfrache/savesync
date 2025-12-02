@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: savesync-prod
+  namespace: argocd  # Namespace où Argo CD est installé
+  labels:
+    environment: production
+spec:
+  project: default  # Ou votre AppProject personnalisé
+  
+  source:
+    repoURL: https://github.com/axelfrache/savesync.git  # À adapter
+    targetRevision: main  # Branch stable pour prod
+    path: k8s/overlays/prod
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: savesync
+  
+  syncPolicy:
+    # PAS d'automated pour la prod -> sync manuel uniquement
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  # Ignorer les différences sur certains champs (optionnel)
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Si vous utilisez HPA

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: savesync
+  labels:
+    name: savesync
+    app.kubernetes.io/name: savesync
+    app.kubernetes.io/part-of: savesync

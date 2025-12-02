@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: savesync-dev
+  namespace: argocd  # Namespace où Argo CD est installé
+  labels:
+    environment: dev
+spec:
+  project: default  # Ou votre AppProject personnalisé
+  
+  source:
+    repoURL: https://github.com/axelfrache/savesync.git  # À adapter
+    targetRevision: main  # Ou develop pour dev
+    path: k8s/overlays/dev
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: savesync-dev
+  
+  syncPolicy:
+    automated:
+      prune: true      # Supprime les ressources qui ne sont plus dans Git
+      selfHeal: true   # Resync auto si drift détecté
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  # Ignorer les différences sur certains champs (optionnel)
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas  # Si vous utilisez HPA

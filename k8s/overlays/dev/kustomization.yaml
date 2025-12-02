@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: savesync-dev
+
+bases:
+  - ../../base
+
+namePrefix: dev-
+
+commonLabels:
+  environment: dev
+
+images:
+  - name: registry.axelfrache.me/savesync/backend
+    newTag: latest
+  - name: registry.axelfrache.me/savesync/frontend
+    newTag: latest
+
+patches:
+  - target:
+      kind: Deployment
+      name: backend
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Ingress
+      name: savesync
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: savesync-dev.yourdomain.com
