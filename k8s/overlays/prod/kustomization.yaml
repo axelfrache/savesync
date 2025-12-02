@@ -6,8 +6,8 @@ namespace: savesync
 bases:
   - ../../base
 
-resources:
-  - pvc.yaml
+# resources:
+#   - pvc.yaml  # Commenté : utilisation d'emptyDir pour le moment
 
 commonLabels:
   environment: production
@@ -19,7 +19,7 @@ images:
     newTag: latest  # CI builds: main, main-<sha>, latest
 
 patches:
-  # Backend: 1 replica (SQLite limitation) + PVC volumes
+  # Backend: 1 replica (SQLite limitation) + emptyDir volumes (base)
   - target:
       kind: Deployment
       name: backend
@@ -27,18 +27,6 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 1
-      - op: replace
-        path: /spec/template/spec/volumes/0
-        value:
-          name: data
-          persistentVolumeClaim:
-            claimName: backend-data-pvc
-      - op: replace
-        path: /spec/template/spec/volumes/1
-        value:
-          name: backups
-          persistentVolumeClaim:
-            claimName: backup-storage-pvc
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/cpu
         value: 200m

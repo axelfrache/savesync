@@ -1,28 +1,23 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: savesync
+  name: savesync-backend
   namespace: savesync
   labels:
     app.kubernetes.io/name: savesync
+    app.kubernetes.io/component: backend
     app.kubernetes.io/part-of: savesync
   annotations:
-    # Annotations pour Nginx Ingress Controller
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    # Si vous utilisez cert-manager pour HTTPS:
-    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    
-    # Annotations alternatives pour Traefik (commentées par défaut)
-    # traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
-  ingressClassName: nginx  # Remplacer par "traefik" si vous utilisez Traefik
+  ingressClassName: nginx
   rules:
     - host: savesync.axelfrache.com
       http:
         paths:
-          # API Backend - path /api/*
+          # API Backend - path /api/* → rewrite to /*
           - path: /api(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -30,7 +25,25 @@ spec:
                 name: savesync-backend
                 port:
                   number: 8080
-          # Frontend - default path
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: savesync-frontend
+  namespace: savesync
+  labels:
+    app.kubernetes.io/name: savesync
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: savesync
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: savesync.axelfrache.com
+      http:
+        paths:
+          # Frontend - all other paths (NO rewrite)
           - path: /
             pathType: Prefix
             backend:
@@ -38,8 +51,4 @@ spec:
                 name: savesync-frontend
                 port:
                   number: 80
-  # Pour HTTPS avec cert-manager:
-  # tls:
-  #   - hosts:
-  #       - savesync.yourdomain.com
-  #     secretName: savesync-tls
+
