@@ -26,6 +26,26 @@ services:
     networks:
       - savesync-network
 
+  garage:
+    image: dxflrs/garage:v2.1.0
+    container_name: savesync-garage
+    ports:
+      - "3900:3900"  # Admin API
+      - "3901:3901"  # S3 API
+    volumes:
+      - garage-data:/var/lib/garage/data
+      - garage-meta:/var/lib/garage/meta
+      - ./docker/garage/garage.toml:/etc/garage.toml
+    command: /garage server
+    restart: unless-stopped
+    networks:
+      - savesync-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3900/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Frontend UI
   frontend:
     build:
@@ -47,6 +67,10 @@ volumes:
   backend-data:
     driver: local
   backup-storage:
+    driver: local
+  garage-data:
+    driver: local
+  garage-meta:
     driver: local
 
 networks:

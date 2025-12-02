@@ -25,19 +25,44 @@ export interface UpdateSourceRequest {
     schedule_id?: number | null;
 }
 
+export type TargetType = 'local' | 's3_generic' | 's3_aws' | 'sftp';
+
+export interface S3GenericConfig {
+    endpoint: string;
+    bucket: string;
+    region?: string;
+    access_key: string;
+    secret_key: string;
+    path_style?: boolean;
+    use_tls?: boolean;
+}
+
+export interface S3AWSConfig {
+    bucket: string;
+    region: string;
+    access_key: string;
+    secret_key: string;
+}
+
+export interface LocalConfig {
+    path: string;
+}
+
+export type TargetConfig = S3GenericConfig | S3AWSConfig | LocalConfig | Record<string, any>;
+
 export interface Target {
     id: number;
     name: string;
-    type: 'local' | 's3' | 'sftp';
-    config: Record<string, string>;
+    type: TargetType;
+    config: TargetConfig;
     created_at: string;
     updated_at: string;
 }
 
 export interface CreateTargetRequest {
     name: string;
-    type: 'local' | 's3' | 'sftp';
-    config: Record<string, string>;
+    type: TargetType;
+    config: TargetConfig;
 }
 
 export interface Snapshot {

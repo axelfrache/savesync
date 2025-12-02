@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useCreateTarget, useUpdateTarget } from '@/hooks/useTargets';
-import type { Target, CreateTargetRequest } from '@/types/api';
+import type { Target, CreateTargetRequest, TargetType } from '@/types/api';
 import {
     Dialog,
     DialogContent,
@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Select,
     SelectContent,
@@ -28,22 +29,36 @@ interface TargetDialogProps {
     target?: Target;
 }
 
+const AWS_REGIONS = [
+    { value: 'us-east-1', label: 'US East (N. Virginia)' },
+    { value: 'us-east-2', label: 'US East (Ohio)' },
+    { value: 'us-west-1', label: 'US West (N. California)' },
+    { value: 'us-west-2', label: 'US West (Oregon)' },
+    { value: 'eu-west-1', label: 'EU (Ireland)' },
+    { value: 'eu-central-1', label: 'EU (Frankfurt)' },
+    { value: 'ap-southeast-1', label: 'Asia Pacific (Singapore)' },
+    { value: 'ap-northeast-1', label: 'Asia Pacific (Tokyo)' },
+];
+
 export default function TargetDialog({ open, onOpenChange, target }: TargetDialogProps) {
     const createTarget = useCreateTarget();
     const updateTarget = useUpdateTarget();
     const { toast } = useToast();
-    const [targetType, setTargetType] = useState<'local' | 's3' | 'sftp'>('local');
+    const [targetType, setTargetType] = useState<TargetType>('s3_generic');
+    const [pathStyle, setPathStyle] = useState(true);
+    const [useTLS, setUseTLS] = useState(true);
 
     const {
         register,
         handleSubmit,
         reset,
         setValue,
+        watch,
         formState: { errors },
     } = useForm<CreateTargetRequest>({
         defaultValues: {
             name: '',
-            type: 'local',
+            type: 's3_generic',
             config: {},
         },
     });
@@ -56,26 +71,71 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                 config: target.config,
             });
             setTargetType(target.type);
+            if (target.type === 's3_generic' && typeof target.config === 'object' && target.config !== null && 'path_style' in target.config) {
+                setPathStyle(target.config.path_style ?? true);
+                setUseTLS(target.config.use_tls ?? true);
+            }
         } else {
             reset({
                 name: '',
-                type: 'local',
+                type: 's3_generic',
                 config: {},
             });
-            setTargetType('local');
+            setTargetType('s3_generic');
+            setPathStyle(true);
+            setUseTLS(true);
         }
     }, [target, reset]);
 
     const onSubmit = async (data: CreateTargetRequest) => {
         try {
+            // Build config based on type
+            let config: any = {};
+
+            if (targetType === 's3_generic') {
+                config = {
+                    endpoint: (data.config as any).endpoint,
+                    bucket: (data.config as any).bucket,
+                    region: (data.config as any).region || 'us-east-1',
+                    access_key: (data.config as any).access_key,
+                    secret_key: (data.config as any).secret_key,
+                    path_style: pathStyle,
+                    use_tls: useTLS,
+                };
+            } else if (targetType === 's3_aws') {
+                config = {
+                    bucket: (data.config as any).bucket,
+                    region: (data.config as any).region,
+                    access_key: (data.config as any).access_key,
+                    secret_key: (data.config as any).secret_key,
+                };
+            } else if (targetType === 'local') {
+                config = {
+                    path: (data.config as any).path,
+                };
+            } else if (targetType === 'sftp') {
+                config = {
+                    host: (data.config as any).host,
+                    user: (data.config as any).user,
+                    password: (data.config as any).password,
+                    path: (data.config as any).path,
+                };
+            }
+
+            const payload = {
+                name: data.name,
+                type: targetType,
+                config,
+            };
+
             if (target) {
-                await updateTarget.mutateAsync({ id: target.id, data });
+                await updateTarget.mutateAsync({ id: target.id, data: payload });
                 toast({
                     title: 'Target updated',
                     description: `${data.name} has been updated`,
                 });
             } else {
-                await createTarget.mutateAsync(data);
+                await createTarget.mutateAsync(payload);
                 toast({
                     title: 'Target created',
                     description: `${data.name} has been created`,
@@ -91,10 +151,14 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
         }
     };
 
-    const handleTypeChange = (type: 'local' | 's3' | 'sftp') => {
+    const handleTypeChange = (type: TargetType) => {
         setTargetType(type);
         setValue('type', type);
         setValue('config', {});
+        if (type === 's3_generic') {
+            setPathStyle(true);
+            setUseTLS(true);
+        }
     };
 
     return (
@@ -129,7 +193,10 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                             </SelectTrigger>
                             <SelectContent className="bg-popover border-border">
                                 <SelectItem value="local">Local Filesystem</SelectItem>
-                                <SelectItem value="s3">S3 Compatible</SelectItem>
+                                <SelectItem value="s3_generic">
+                                    S3 Compatible (MinIO, Garage, Ceph, R2…)
+                                </SelectItem>
+                                <SelectItem value="s3_aws">AWS S3</SelectItem>
                                 <SelectItem value="sftp">SFTP</SelectItem>
                             </SelectContent>
                         </Select>
@@ -147,19 +214,28 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                         </div>
                     )}
 
-                    {targetType === 's3' && (
+                    {targetType === 's3_generic' && (
                         <>
+                            <div className="space-y-2">
+                                <Label htmlFor="endpoint">Endpoint</Label>
+                                <Input
+                                    id="endpoint"
+                                    {...register('config.endpoint', { required: 'Endpoint is required' })}
+                                    placeholder="https://minio.example.com"
+                                    className="bg-input border-input"
+                                />
+                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="bucket">Bucket</Label>
                                 <Input
                                     id="bucket"
                                     {...register('config.bucket', { required: 'Bucket is required' })}
-                                    placeholder="my-backups"
+                                    placeholder="savesync"
                                     className="bg-input border-input"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="region">Region</Label>
+                                <Label htmlFor="region">Region (optional)</Label>
                                 <Input
                                     id="region"
                                     {...register('config.region')}
@@ -171,7 +247,7 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                 <Label htmlFor="access_key">Access Key</Label>
                                 <Input
                                     id="access_key"
-                                    {...register('config.access_key')}
+                                    {...register('config.access_key', { required: 'Access key is required' })}
                                     placeholder="YOUR_ACCESS_KEY"
                                     className="bg-input border-input"
                                 />
@@ -181,7 +257,78 @@ export default function TargetDialog({ open, onOpenChange, target }: TargetDialo
                                 <Input
                                     id="secret_key"
                                     type="password"
-                                    {...register('config.secret_key')}
+                                    {...register('config.secret_Key', { required: 'Secret key is required' })}
+                                    placeholder="YOUR_SECRET_KEY"
+                                    className="bg-input border-input"
+                                />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="path_style"
+                                    checked={pathStyle}
+                                    onCheckedChange={(checked) => setPathStyle(checked as boolean)}
+                                />
+                                <Label htmlFor="path_style" className="font-normal">
+                                    Use path-style URLs (recommended for MinIO/Garage)
+                                </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="use_tls"
+                                    checked={useTLS}
+                                    onCheckedChange={(checked) => setUseTLS(checked as boolean)}
+                                />
+                                <Label htmlFor="use_tls" className="font-normal">
+                                    Use TLS/HTTPS
+                                </Label>
+                            </div>
+                        </>
+                    )}
+
+                    {targetType === 's3_aws' && (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="aws_bucket">Bucket</Label>
+                                <Input
+                                    id="aws_bucket"
+                                    {...register('config.bucket', { required: 'Bucket is required' })}
+                                    placeholder="my-backup-bucket"
+                                    className="bg-input border-input"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="aws_region">Region</Label>
+                                <Select
+                                    value={watch('config.region') as string}
+                                    onValueChange={(value) => setValue('config.region', value)}
+                                >
+                                    <SelectTrigger className="bg-input border-input">
+                                        <SelectValue placeholder="Select region" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-popover border-border">
+                                        {AWS_REGIONS.map((region) => (
+                                            <SelectItem key={region.value} value={region.value}>
+                                                {region.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="aws_access_key">Access Key</Label>
+                                <Input
+                                    id="aws_access_key"
+                                    {...register('config.access_key', { required: 'Access key is required' })}
+                                    placeholder="YOUR_ACCESS_KEY"
+                                    className="bg-input border-input"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="aws_secret_key">Secret Key</Label>
+                                <Input
+                                    id="aws_secret_key"
+                                    type="password"
+                                    {...register('config.secret_key', { required: 'Secret key is required' })}
                                     placeholder="YOUR_SECRET_KEY"
                                     className="bg-input border-input"
                                 />

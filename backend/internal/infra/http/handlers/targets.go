@@ -34,7 +34,18 @@ func (h *TargetHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, targets)
+	dtos := make([]*TargetResponse, len(targets))
+	for i, target := range targets {
+		dto, err := ToTargetResponse(target)
+		if err != nil {
+			h.logger.Error("failed to convert target to DTO", zap.Error(err), zap.Int64("id", target.ID))
+			WriteError(w, http.StatusInternalServerError, "Failed to format targets")
+			return
+		}
+		dtos[i] = dto
+	}
+
+	WriteJSON(w, http.StatusOK, dtos)
 }
 
 // Get handles GET /api/targets/:id
@@ -57,18 +68,32 @@ func (h *TargetHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, target)
+	dto, err := ToTargetResponse(target)
+	if err != nil {
+		h.logger.Error("failed to convert target to DTO", zap.Error(err), zap.Int64("id", id))
+		WriteError(w, http.StatusInternalServerError, "Failed to format target")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, dto)
 }
 
 // Create handles POST /api/targets
 func (h *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var target domain.Target
-	if err := json.NewDecoder(r.Body).Decode(&target); err != nil {
+	var req CreateTargetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	if err := h.service.Create(r.Context(), &target); err != nil {
+	target, err := req.ToTargetDomain()
+	if err != nil {
+		h.logger.Error("failed to convert request to domain", zap.Error(err))
+		WriteError(w, http.StatusBadRequest, "Invalid target configuration")
+		return
+	}
+
+	if err := h.service.Create(r.Context(), target); err != nil {
 		if err == domain.ErrBackendInit {
 			WriteError(w, http.StatusBadRequest, "Failed to initialize backend with provided configuration")
 			return
@@ -78,7 +103,14 @@ func (h *TargetHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusCreated, target)
+	dto, err := ToTargetResponse(target)
+	if err != nil {
+		h.logger.Error("failed to convert target to DTO", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "Failed to format target")
+		return
+	}
+
+	WriteJSON(w, http.StatusCreated, dto)
 }
 
 // Update handles PUT /api/targets/:id
@@ -90,15 +122,27 @@ func (h *TargetHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var target domain.Target
-	if err := json.NewDecoder(r.Body).Decode(&target); err != nil {
+	var req UpdateTargetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
-	target.ID = id
+	configJSON, err := json.Marshal(req.Config)
+	if err != nil {
+		h.logger.Error("failed to marshal config", zap.Error(err))
+		WriteError(w, http.StatusBadRequest, "Invalid target configuration")
+		return
+	}
 
-	if err := h.service.Update(r.Context(), &target); err != nil {
+	target := &domain.Target{
+		ID:         id,
+		Name:       req.Name,
+		Type:       domain.TargetType(req.Type),
+		ConfigJSON: string(configJSON),
+	}
+
+	if err := h.service.Update(r.Context(), target); err != nil {
 		if err == domain.ErrNotFound {
 			WriteError(w, http.StatusNotFound, "Target not found")
 			return
@@ -112,7 +156,14 @@ func (h *TargetHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteJSON(w, http.StatusOK, target)
+	dto, err := ToTargetResponse(target)
+	if err != nil {
+		h.logger.Error("failed to convert target to DTO", zap.Error(err))
+		WriteError(w, http.StatusInternalServerError, "Failed to format target")
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, dto)
 }
 
 // Delete handles DELETE /api/targets/:id

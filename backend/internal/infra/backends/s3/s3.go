@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -38,27 +39,37 @@ func (b *Backend) Init(cfg map[string]string) error {
 
 	accessKey := cfg["access_key"]
 	secretKey := cfg["secret_key"]
-	endpoint := cfg["endpoint"] // For MinIO/Backblaze
+	endpoint := cfg["endpoint"] // For MinIO/Garage/Backblaze
 
-	// Create AWS config
+	// DEBUG: Log configuration (without secret)
+	fmt.Printf("[S3 Backend Init] bucket=%s, region=%s, endpoint=%s, access_key=%s, secret_key_length=%d\n",
+		bucket, region, endpoint, accessKey, len(secretKey))
+
+	// Create AWS config with static credentials
 	var awsCfg aws.Config
 	var err error
 
 	if accessKey != "" && secretKey != "" {
-		// Use static credentials
+		// Use LoadDefaultConfig with static credentials and EC2 IMDS DISABLED
+		// This is the only way to prevent EC2 IMDS timeout errors
 		awsCfg, err = config.LoadDefaultConfig(context.Background(),
 			config.WithRegion(region),
 			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
+			// CRITICAL: Disable EC2 IMDS to prevent timeout errors
+			config.WithEC2IMDSClientEnableState(imds.ClientDisabled),
 		)
+		if err != nil {
+			return fmt.Errorf("failed to load AWS config: %w", err)
+		}
+		fmt.Printf("[S3 Backend Init] Using static credentials\n")
 	} else {
-		// Use default credential chain
+		// Use default credential chain only if no credentials provided
 		awsCfg, err = config.LoadDefaultConfig(context.Background(),
 			config.WithRegion(region),
 		)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to load AWS config: %w", err)
+		if err != nil {
+			return fmt.Errorf("failed to load AWS config: %w", err)
+		}
 	}
 
 	// Create S3 client
@@ -66,7 +77,12 @@ func (b *Backend) Init(cfg map[string]string) error {
 	if endpoint != "" {
 		clientOptions = append(clientOptions, func(o *s3.Options) {
 			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = true // Required for MinIO
+			// Check if path_style is explicitly set
+			if pathStyle, ok := cfg["path_style"]; ok && pathStyle == "true" {
+				o.UsePathStyle = true
+			} else {
+				o.UsePathStyle = true // Default to true for non-AWS S3
+			}
 		})
 	}
 

@@ -32,15 +32,44 @@ type Source struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
+// TargetType represents the type of backup target
+type TargetType string
+
+const (
+	TargetLocal     TargetType = "local"
+	TargetS3Generic TargetType = "s3_generic" // MinIO, Garage, Ceph, R2, etc.
+	TargetS3AWS     TargetType = "s3_aws"     // Official AWS S3
+	TargetSFTP      TargetType = "sftp"
+)
+
+// S3GenericConfig represents configuration for generic S3-compatible providers
+type S3GenericConfig struct {
+	Endpoint  string `json:"endpoint"`
+	Bucket    string `json:"bucket"`
+	Region    string `json:"region"`
+	AccessKey string `json:"access_key"`
+	SecretKey string `json:"secret_key"`
+	PathStyle bool   `json:"path_style"`
+	UseTLS    bool   `json:"use_tls"`
+}
+
+// S3AWSConfig represents configuration for AWS S3
+type S3AWSConfig struct {
+	Bucket    string `json:"bucket"`
+	Region    string `json:"region"`
+	AccessKey string `json:"access_key"`
+	SecretKey string `json:"secret_key"`
+}
+
 // Target represents a storage backend configuration
 type Target struct {
-	ID        int64             `json:"id"`
-	UserID    int64             `json:"user_id"`
-	Name      string            `json:"name"`
-	Type      string            `json:"type"` // local, s3, sftp
-	Config    map[string]string `json:"config"`
-	CreatedAt time.Time         `json:"created_at"`
-	UpdatedAt time.Time         `json:"updated_at"`
+	ID         int64      `json:"id"`
+	UserID     int64      `json:"user_id"`
+	Name       string     `json:"name"`
+	Type       TargetType `json:"type"`
+	ConfigJSON string     `json:"-"` // Stored as JSON in DB, not exposed in API
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
 }
 
 // Snapshot represents a backup snapshot at a point in time

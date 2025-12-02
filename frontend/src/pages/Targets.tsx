@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Pencil, Trash2, Target as TargetIcon } from 'lucide-react';
 import TargetDialog from '@/components/features/targets/TargetDialog';
-import type { Target } from '@/types/api';
+import type { Target, TargetType, S3GenericConfig, S3AWSConfig, LocalConfig } from '@/types/api';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -18,6 +18,21 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+
+export const getTypeLabel = (type: TargetType) => {
+    switch (type) {
+        case 'local':
+            return 'Local Filesystem';
+        case 's3_generic':
+            return 'S3 Compatible';
+        case 's3_aws':
+            return 'AWS S3';
+        case 'sftp':
+            return 'SFTP';
+        default:
+            return type;
+    }
+};
 
 export default function Targets() {
     const { data: targets, isLoading, error } = useTargets();
@@ -115,18 +130,56 @@ export default function Targets() {
                             <CardContent className="space-y-3">
                                 <div className="text-sm text-muted-foreground">
                                     {target.type === 'local' && (
-                                        <p>Path: <span className="text-foreground">{target.config.path}</span></p>
+                                        <p>
+                                            Path:{' '}
+                                            <span className="text-foreground">
+                                                {(target.config as LocalConfig).path}
+                                            </span>
+                                        </p>
                                     )}
-                                    {target.type === 's3' && (
+                                    {target.type === 's3_generic' && (
                                         <>
-                                            <p>Bucket: <span className="text-foreground">{target.config.bucket}</span></p>
-                                            <p>Region: <span className="text-foreground">{target.config.region}</span></p>
+                                            <p>
+                                                Endpoint:{' '}
+                                                <span className="text-foreground">
+                                                    {(target.config as S3GenericConfig).endpoint}
+                                                </span>
+                                            </p>
+                                            <p>
+                                                Bucket:{' '}
+                                                <span className="text-foreground">
+                                                    {(target.config as S3GenericConfig).bucket}
+                                                </span>
+                                            </p>
+                                        </>
+                                    )}
+                                    {target.type === 's3_aws' && (
+                                        <>
+                                            <p>
+                                                s3://
+                                                <span className="text-foreground">
+                                                    {(target.config as S3AWSConfig).bucket}
+                                                </span>
+                                                {' ('}
+                                                {(target.config as S3AWSConfig).region}
+                                                {')'}
+                                            </p>
                                         </>
                                     )}
                                     {target.type === 'sftp' && (
                                         <>
-                                            <p>Host: <span className="text-foreground">{target.config.host}</span></p>
-                                            <p>Path: <span className="text-foreground">{target.config.path}</span></p>
+                                            <p>
+                                                Host:{' '}
+                                                <span className="text-foreground">
+                                                    {(target.config as any).host}
+                                                </span>
+                                            </p>
+                                            <p>
+                                                Path:{' '}
+                                                <span className="text-foreground">
+                                                    {(target.config as any).path}
+                                                </span>
+                                            </p>
                                         </>
                                     )}
                                 </div>

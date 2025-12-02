@@ -115,7 +115,7 @@ export default function Sources() {
                         <p className="text-muted-foreground text-center">
                             No sources configured yet.
                             <br />
-                            Add your first backup source to get started.
+                            Add a backup source to get started.
                         </p>
                         <Button onClick={() => setDialogOpen(true)} className="mt-4">
                             <Plus className="mr-2 h-4 w-4" />

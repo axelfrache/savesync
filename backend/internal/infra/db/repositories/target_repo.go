@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -22,10 +21,6 @@ func NewTargetRepo(db *sql.DB) *TargetRepo {
 
 // Create creates a new target
 func (r *TargetRepo) Create(ctx context.Context, target *domain.Target) error {
-	configJSON, err := json.Marshal(target.Config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
 
 	query := `
 		INSERT INTO targets (name, type, config, created_at, updated_at)
@@ -35,8 +30,8 @@ func (r *TargetRepo) Create(ctx context.Context, target *domain.Target) error {
 	now := time.Now()
 	result, err := r.db.ExecContext(ctx, query,
 		target.Name,
-		target.Type,
-		string(configJSON),
+		string(target.Type),
+		target.ConfigJSON,
 		now,
 		now,
 	)
@@ -65,13 +60,13 @@ func (r *TargetRepo) GetByID(ctx context.Context, id int64) (*domain.Target, err
 	`
 
 	var target domain.Target
-	var configJSON string
+	var typeStr string
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&target.ID,
 		&target.Name,
-		&target.Type,
-		&configJSON,
+		&typeStr,
+		&target.ConfigJSON,
 		&target.CreatedAt,
 		&target.UpdatedAt,
 	)
@@ -82,9 +77,7 @@ func (r *TargetRepo) GetByID(ctx context.Context, id int64) (*domain.Target, err
 		return nil, fmt.Errorf("failed to get target: %w", err)
 	}
 
-	if err := json.Unmarshal([]byte(configJSON), &target.Config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-	}
+	target.Type = domain.TargetType(typeStr)
 
 	return &target, nil
 }
@@ -106,13 +99,13 @@ func (r *TargetRepo) GetAll(ctx context.Context) ([]*domain.Target, error) {
 	var targets []*domain.Target
 	for rows.Next() {
 		var target domain.Target
-		var configJSON string
+		var typeStr string
 
 		err := rows.Scan(
 			&target.ID,
 			&target.Name,
-			&target.Type,
-			&configJSON,
+			&typeStr,
+			&target.ConfigJSON,
 			&target.CreatedAt,
 			&target.UpdatedAt,
 		)
@@ -120,9 +113,7 @@ func (r *TargetRepo) GetAll(ctx context.Context) ([]*domain.Target, error) {
 			return nil, fmt.Errorf("failed to scan target: %w", err)
 		}
 
-		if err := json.Unmarshal([]byte(configJSON), &target.Config); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal config: %w", err)
-		}
+		target.Type = domain.TargetType(typeStr)
 
 		targets = append(targets, &target)
 	}
@@ -136,10 +127,6 @@ func (r *TargetRepo) GetAll(ctx context.Context) ([]*domain.Target, error) {
 
 // Update updates a target
 func (r *TargetRepo) Update(ctx context.Context, target *domain.Target) error {
-	configJSON, err := json.Marshal(target.Config)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
 
 	query := `
 		UPDATE targets
@@ -150,8 +137,8 @@ func (r *TargetRepo) Update(ctx context.Context, target *domain.Target) error {
 	now := time.Now()
 	result, err := r.db.ExecContext(ctx, query,
 		target.Name,
-		target.Type,
-		string(configJSON),
+		string(target.Type),
+		target.ConfigJSON,
 		now,
 		target.ID,
 	)

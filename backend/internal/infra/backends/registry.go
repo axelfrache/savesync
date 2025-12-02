@@ -20,6 +20,8 @@ func NewRegistry() *Registry {
 
 	r.Register("local", func() domain.Backend { return &local.Backend{} })
 	r.Register("s3", func() domain.Backend { return &s3.Backend{} })
+	r.Register("s3_generic", func() domain.Backend { return &s3.Backend{} })
+	r.Register("s3_aws", func() domain.Backend { return &s3.Backend{} })
 	r.Register("sftp", func() domain.Backend { return &sftp.Backend{} })
 
 	return r
