@@ -14,9 +14,9 @@ commonLabels:
 
 images:
   - name: registry.axelfrache.me/savesync/backend
-    newTag: v1.0.0  # À remplacer par votre version
+    newTag: latest  # CI builds: main, main-<sha>, latest
   - name: registry.axelfrache.me/savesync/frontend
-    newTag: v1.0.0  # À remplacer par votre version
+    newTag: latest  # CI builds: main, main-<sha>, latest
 
 patches:
   # Backend: 1 replica (SQLite limitation) + PVC volumes
