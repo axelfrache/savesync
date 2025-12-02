@@ -12,8 +12,8 @@ RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
 # Copy source code
 COPY . .
 
-# Build argument for API URL
-ARG VITE_API_URL=http://localhost:8080
+# Build argument for API URL - defaults to /api for production
+ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
 # Build the application
