@@ -63,11 +63,9 @@ func TestTargetService_Create(t *testing.T) {
 	service := New(mockRepo, registry, logger)
 
 	target := &domain.Target{
-		Name: "test-target",
-		Type: "local",
-		Config: map[string]string{
-			"path": "/tmp/backup",
-		},
+		Name:       "test-target",
+		Type:       "local",
+		ConfigJSON: `{"path":"/tmp/backup"}`,
 	}
 
 	mockRepo.On("Create", mock.Anything, target).Return(nil)
